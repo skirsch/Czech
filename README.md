@@ -19,7 +19,7 @@ You can find these in the scripts directory.
 
 | Script            | Purpose                                                 |
 | -------------------- | ---------------------------------------------------------- | 
-| buckets.py     | Detailed time series cohort analysis | 
+| [buckets.py](./scripts/buckets.py)     | Detailed time series cohort analysis | 
 | convert.py | Converts the CR data to form used by buckets.py                                                       | 
 | count_deaths.py          | Counts deaths for 1 year after vaccine was given for each age group                                                       | 
 | count_months.py  | Counts # of doses given each month                               | 
