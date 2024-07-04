@@ -21,7 +21,7 @@ You can find these in the scripts directory.
 | -------------------- | ---------------------------------------------------------- | 
 | buckets.py     | Detailed time series cohort analysis | 
 | convert.py | Converts the CR data to form used by buckets.py                                                       | 
-| count_deaths_1y.py          | Counts deaths for 1 year after vaccine was given for each age group                                                       | 
+| count_deaths.py          | Counts deaths for 1 year after vaccine was given for each age group                                                       | 
 | count_months.py  | Counts # of doses given each month                               | 
 | death_rates.py |    ? |
 | extract_dose.sh | ? |
