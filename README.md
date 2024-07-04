@@ -1,5 +1,5 @@
 ### About this repository
-Only one country in the world has made publicly available record level data on COVID vaccine statistics: yhe Czech Republic (CR) aka Czechia.
+Only one country in the world has made publicly available record level data on COVID vaccine statistics: the Czech Republic (CR) aka Czechia.
 
 All other countries use "privacy" as the excuse for not publishing record level data on vaccines given.
 
