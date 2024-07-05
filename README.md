@@ -13,6 +13,15 @@ The CR source [data can be downloaded here](https://github.com/PalackyUniversity
 
 It was first made available on Github on Mar 29, 2024.
 
+The file is compressed and expands to a `.csv` file with header and entries like this:
+```
+Sex, Year of Birth, Date of Death, Vax1 date, Vax1 batch code, Vax1 Code, Vax1 Name, <repeat these 4 fields for 7 vaccines>
+"F",1956,,2021-05-03,"EY3014","CO01","Comirnaty",2021-06-14,"FD0168","CO01","Comirnaty",2021-12-11,"1F1020A","CO01","Com
+irnaty",2022-09-29,,"CO08","Comirnaty Original/Omicron BA.1",2023-10-10,"HH0832","CO20","Comirnaty Omicron XBB.1.5.",,,,
+,,,,
+```
+
+
 ### Scripts to analyze the data
 You can find these in the scripts directory. 
 
@@ -20,13 +29,25 @@ You can find these in the scripts directory.
 | Script            | Purpose                                                 |
 | -------------------- | ---------------------------------------------------------- | 
 | [buckets.py](./scripts/buckets.py)     | Detailed time series cohort analysis | 
-| convert.py | Converts the CR data to form used by buckets.py                                                       | 
-| count_deaths.py          | Counts deaths for 1 year after vaccine was given for each age group                                                       | 
-| count_months.py  | Counts # of doses given each month                               | 
-| death_rates.py |    ? |
-| extract_dose.sh | ? |
-| extract_month.sh | ?|
-| process_month.sh | ? |
+| [convert.py](./scripts/convert.py)| Converts the CR data from .csv to the form used by buckets.py (one line per dose)                                                       | 
+| [count_deaths.py](./scripts/count_deaths.py)          | Counts deaths for 1 year after vaccine was given for each age group                                                       | 
+| [count_months.py](./scripts/count_months.py)  | Counts # of doses given each month                               | 
+| [death_rates.py](./scripts/death_rates.py) |    ? |
+| [extract_dose.sh](./scripts/extract_dose.sh) | ? |
+| [extract_month.sh](./scripts/extract_month.sh) | ?|
+| [process_month.sh](./scripts/process_month.sh) | ? |
+
+### Using the scripts to generate the mortality rate for one year from shot administration
+```
+python convert.py CR_data_file.csv full.csv 
+extract_dose.sh full.csv 2 >dose2.csv 
+python count_deaths.py dose2.csv
+
+python buckets.py dose2.csv dose2
+python count_months.py dose2.csv
+
+
+```
 
 ### Spreadsheets to analyze the time series data and the 1 year mortality data
 
@@ -52,7 +73,9 @@ Basically, you can think of Pfizer as the placebo. Then you compare the Moderna 
 
 Essentially, by randomizing the vaccine to people in the Czech Republic, they created the perfect clinical trial. And then they published the record level data. This has never been done before. It’s always been kept hidden from public view.
 
-You can't argue that Pfizer saved lives and Moderna was completely neutral because there is no bump. And we have all these anecdotes of people dying right after the jab, which is unheard of. One of my friends had four of his friends die on the day that they got jabbed.
+If both vaccines were safe, there should have been less than a 4% difference in ACM for the elderly and a much smaller difference for those under 60 years old. 
+
+Also, we have all these anecdotes of people dying right after the jab, which is unheard of. One of my friends had four of his friends die on the day that they got jabbed. That is statistically impossible if the shots are safe. I should never be able to find a single anecdote like that even if I talked to everyone on earth.
 
 ### Why this is a gold standard study data
 1. Huge dataset

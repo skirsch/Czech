@@ -1,24 +1,21 @@
 import csv
 from datetime import datetime
+import argparse
 
-def process_vaccine_data(input_file, male_output_file, female_output_file):
+def process_vaccine_data(input_file, output_file):
   """
-  Processes a large CSV file with vaccination data, separates data by gender,
-  and writes the results to two output CSV files.
+  Reads the large CSV file in Czech Republic format and 
+  and writes the results to two output CSV files, one for male, one for female, in the buckets format.
 
   Args:
       input_file (str): Path to the input CSV file.
-      male_output_file (str): Path to the output CSV file for males.
-      female_output_file (str): Path to the output CSV file for females.
+      output_file (str)
   """
-  with open(input_file, 'r') as infile, open(male_output_file, 'w', newline='') as male_outfile, open(female_output_file, 'w', newline='') as female_outfile, open(other_output_file, 'w', newline='') as other_outfile:
-    male_writer = csv.writer(male_outfile)
-    female_writer = csv.writer(female_outfile)
-    other_writer = csv.writer(other_outfile)
+  with open(input_file, 'r') as infile, open(output_file, 'w', newline='') as outfile:
+    out_writer = csv.writer(outfile)
     # Write header row for both output files
-    male_writer.writerow(['mrn', 'Vax_code', 'Dose_number', 'Vax_date', 'Death_date', 'Vax_name', 'Birth_date'])
-    female_writer.writerow(['mrn', 'Vax_code', 'Dose_number', 'Vax_date', 'Death_date', 'Vax_name', 'Birth_date'])
-    
+    out_writer.writerow(['mrn', 'Vax_code', 'Dose_number', 'Vax_date', 'Death_date', 'Vax_name', 'Birth_date'])
+      
     reader = csv.reader(infile)
     for row_num, row in enumerate(reader, start=1):
       # Skip header row
@@ -46,7 +43,7 @@ def process_vaccine_data(input_file, male_output_file, female_output_file):
         vax_date = row[3 + (dose_num - 1) * 4]
         #  loop if vax_date is empty (no more doses)
         if not vax_date:
-          continue    # see if any other doses since a dose can be missing
+          continue    # see if any other doses since a dose can be missing so contine and don't break
         vax_code = int(row[5 + (dose_num - 1) * 4][2:])
         vax_name = row[6 + (dose_num - 1) * 4]
 
@@ -58,19 +55,19 @@ def process_vaccine_data(input_file, male_output_file, female_output_file):
           print(f"Error: Invalid vax_date format {vax_date} for row {row_num}")
           vax_date = ""
         
-        # Write output based on gender
+        # Write an output row for each dose given
         output_row = [mrn, vax_code, dose_num, vax_date, death_date, vax_name, f"1/1/{birth_year}"]
-        if sex == 'M':
-          male_writer.writerow(output_row)
-        elif sex == 'F':
-          female_writer.writerow(output_row)
-        else:
-          other_writer.writerow(output_row)
+        out_writer.writerow(output_row)
 
 if __name__ == "__main__":
-  input_file = "full.csv"
-  male_output_file = "male.csv"
-  female_output_file = "female.csv"
-  other_output_file = "other.csv"
-  process_vaccine_data(input_file, male_output_file, female_output_file)
-  print("Processing complete. Output files generated!")
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(description="Convert input file to buckets format.")
+    parser.add_argument('in_filename', type=str, help='The input CSV file to convert to buckets format')
+    # optional positional arg with default
+    parser.add_argument('out_filename', type=str, help='Output filename')    
+    # Parse the arguments
+    args = parser.parse_args()
+    
+    # Call the function with the provided filename
+    process_vaccine_data(args.in_filename, args.out_filename)
+    
