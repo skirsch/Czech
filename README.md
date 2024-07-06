@@ -1,3 +1,37 @@
+### Abstract
+* We legally obtained over 10M records people in Czech Republic via FOIA.
+* The records preserved privacy by using birth year instead of birth date.
+* There was one record for each person
+* Each record had YOB, DOD (if dead), and, for each COVID vaccination, the vax date,vax batch, vax name, vax code number for up to 7 vaccinations.
+* Deaths were not included for 2023 and beyond, limiting the scope of the analysis
+* Dose 2 was given starting in 2021 with the greatest number of doses given mid-year
+* You had to wait 8 months after dose 2 before getting a booster.
+* Pfizer rolled out first in Jan 2021. Moderna rolled out in Feb 2021.
+* Vaccines were randomly distributed for those wishing to get vaxxed.
+* People were not allowed to select which vaccines they got.
+* xxxx people received Moderna Dose 2 in 2021
+* xxxx people received Pfizer Dose 2 in 2021
+* This created a perfect real-world randomized clinical trial where we could compute the mortality rates for 1 year after Dose 2 for the two most popular vaccines. 
+* The mortality rate ratio (MRR) was computed individually for each birth year. Because Pfizer was the safer vaccine, we treated it as the control.
+* We avoided using unvaccinated as controls because people who decide not to be vaccinated generally have higher mortality than those who opt for vaccination.
+* Using these records we computed a 1-year mortality rate ratio (MRR) computed as MRR=MR(Moderna) / MR(Pfizer) where the 1 year was measured from the time the person got the shot. This helps to reduce any seasonality bias that would be created with a shorter observation interval.
+* Due to the fact we had no death data past 2022, we restricted the dataset to only those people who were given shot #2 in 2021
+* To eliminate the rollout differences, we also computed the MRR ignoring Jan and Feb 2021.
+* MMR increased as age decreased as shown here which shows the 5 year rolling average MRR. So 90 means those aged 90 to 94.
+|age|MRR|
+|90|---|
+|80|---|
+|70|---|
+|60|---|
+|50|---|
+* Below age 54, there were too few total deaths to make accurate comparisons between vaccine types
+* We also did a time-series cohort analysis for those getting dose 2 which showed that mortality rate increased monotonically for around 35 weeks after the shot before leveling off, but there was also a near doubling in mortality starting immediately after the shots: a t=0, the MR of Moderna was nearly double that of Pfizer.
+
+* Indepdent validation of the same effect:
+    * VAERS
+    * Fraiman
+    * Amount of active ingredient
+
 ### About this repository
 Only one country in the world has made publicly available record level data on COVID vaccine statistics: the Czech Republic (CR) aka Czechia.
 
@@ -26,8 +60,8 @@ irnaty",2022-09-29,,"CO08","Comirnaty Original/Omicron BA.1",2023-10-10,"HH0832"
 You can find these in the scripts directory. 
 
 
-| Script            | Purpose                                                 |
-| -------------------- | ---------------------------------------------------------- | 
+| Script    | Purpose       |
+| -------------------- | ------------------------------------ | 
 | [buckets.py](./scripts/buckets.py)     | Detailed time series cohort analysis | 
 | [convert.py](./scripts/convert.py)| Converts the CR data from .csv to the form used by buckets.py (one line per dose)   | 
 | [count_deaths.py](./scripts/count_deaths.py)          | Counts deaths for 1 year after vaccine was given for each age group | 
