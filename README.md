@@ -19,12 +19,12 @@
 * To eliminate the rollout differences, we also computed the MRR ignoring Jan and Feb 2021.
 * MMR increased as age decreased as shown here which shows the 5 year rolling average MRR. So 90 means those aged 90 to 94.
 |age|MRR|
-|90|---|
-|80|---|
-|70|---|
-|60|---|
-|50|---|
-* Below age 54, there were too few total deaths to make accurate comparisons between vaccine types
+|90|1.21|
+|80|1.21|
+|70|1.47|
+|60|1.54|
+|50|1.67|
+* Below age 50, there were too few total deaths to make accurate comparisons between vaccine types
 * We also did a time-series cohort analysis for those getting dose 2 which showed that mortality rate increased monotonically for around 35 weeks after the shot before leveling off, but there was also a near doubling in mortality starting immediately after the shots: a t=0, the MR of Moderna was nearly double that of Pfizer.
 
 * Indepdent validation of the same effect:
@@ -56,26 +56,27 @@ irnaty",2022-09-29,,"CO08","Comirnaty Original/Omicron BA.1",2023-10-10,"HH0832"
 ```
 
 
-### Scripts to analyze the data
-You can find these in the scripts directory. 
+### Code to analyze the data
+You can find these in the code directory. 
 
 
 | Script    | Purpose       |
 | -------------------- | ------------------------------------ | 
-| [buckets.py](./scripts/buckets.py)     | Detailed time series cohort analysis | 
-| [convert.py](./scripts/convert.py)| Converts the CR data from .csv to the form used by buckets.py (one line per dose)   | 
-| [count_deaths.py](./scripts/count_deaths.py)          | Counts deaths for 1 year after vaccine was given for each age group | 
-| [count_months.py](./scripts/count_months.py)  | Counts # of doses given each month  | 
-| [death_rates.py](./scripts/death_rates.py) |    ? |
-| [extract_dose.sh](./scripts/extract_dose.sh) | ? |
-| [extract_month.sh](./scripts/extract_month.sh) | ?|
-| [process_month.sh](./scripts/process_month.sh) | ? |
-| [extract_vax_code.sh](./scripts/process_month.sh)| Extract records matching a vax code|
+| [buckets.py](./code/buckets.py)     | Detailed time series cohort analysis | 
+| [convert.py](./code/convert.py)| Converts the CR data from .csv to the form used by buckets.py (one line per dose)   | 
+| [count_deaths.py](./code/count_deaths.py)          | Counts deaths for 1 year after vaccine was given for each age group | 
+| [count_months.py](./code/count_months.py)  | Counts # of doses given each month  | 
+| [death_rates.py](./code/death_rates.py) |    ? |
+| [extract_dose.sh](./code/extract_dose.sh) | ? |
+| [extract_month.sh](./code/extract_month.sh) | ?|
+| [process_month.sh](./code/process_month.sh) | ? |
+| [extract_vax_code.sh](./code/process_month.sh)| Extract records matching a vax code|
 
-### How to use the scripts to generate the mortality rate for one year from shot administration which is the key outcome
+### How to use the code to generate the mortality rate for one year from shot administration which is the key outcome
 Note if you are using windows, you'll need to install something like Git Bash or even better, use WSL and install Debian. 
 ```
 python convert.py CR_records.csv >records.csv  # convert CR format (1 record per person) to buckets format (1 record per shot)
+./extract_vax_year.sh                            # get only those vaccinated in 2021 to allow 1 year to die
 ./extract_dose.sh records.csv 2 >dose2.csv       # get dose 2 data
 ./extract_vax_code.sh dose2.csv 1 >pfizer.csv    # get Pfizer shots
 ./extract_vax_code.sh dose2.csv 2 >moderna.csv   # get Moderna shots
@@ -87,7 +88,7 @@ done
 ```
 You now have a pfizer_counts.csv and moderna_counts.csv files which you can analyze in a spreadsheet
 
-### Using the scripts to generate time series cohort analysis files
+### Using the code to generate time series cohort analysis files
 
 ```
 python buckets.py dose2.csv dose2
@@ -175,3 +176,30 @@ Moderna was 100mcg of mRNA vs. 30mcg for the Pfizer shot. Moderna was only 50mcg
 ### What the analysis reveals
 
 ### Attacks on the data, methods, or interpretation
+
+### Ack
+guy who got data
+CZ team who wrote the papers
+clare craig
+norman fenton
+fraiman on confounders
+paul marik
+pierre kory, 
+aseem malhotra
+andrew briden: fraiman paper
+
+### Hall of shame 
+Sir Ian Diamond for ignoring the requests of MPs to do a more thorough analysis of the data
+Te Whatu Ora for 
+Santa Clara Department of public health
+CDC for refusing to talk to me about any data
+FDA for refusing to engage on this data
+Former FDA Commissioner Janet Woodcock for blocking me
+LinkedIn for giving me a lifetime
+Wikipedia for giving me a lifetime ban
+Medium for giving me a lifetime ban
+The OLD Twitter for giving me two lifetime bans
+### References
+fraiman
+link on from Google doc on randomized
+CZ paper on vax vs unvaxxed
