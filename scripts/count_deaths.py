@@ -1,3 +1,7 @@
+# this takes a .csv file in buckets format and tallies dose and death counts by age
+# so if you want to look at Moderna vs. pfizer, create separate input files for each vaccine type, then call this
+# function.
+
 import argparse
 import csv
 from datetime import datetime

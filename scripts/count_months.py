@@ -3,7 +3,7 @@ from collections import Counter
 import csv
 from datetime import datetime
 
-def count_months(filename):
+def count_months(filename, in_year):
     # Initialize a Counter object to keep track of month counts
     month_counts = Counter()
 
@@ -17,6 +17,10 @@ def count_months(filename):
                 try:
                     # Parse the date
                     date = datetime.strptime(date_str, "%m/%d/%Y")
+                    # Extract the year to make sure it matches
+                    year = date.year
+                    if not year == in_year:
+                        continue    # skip this row. Wrong year.
                     # Extract the month
                     month = date.month
                     # Increment the count for this month
@@ -33,9 +37,10 @@ if __name__ == "__main__":
     # Set up argument parsing
     parser = argparse.ArgumentParser(description="Count entries for each month in a CSV file.")
     parser.add_argument('filename', type=str, help='The CSV file to process')
+    parser.add_argument('year', type=str, help='The year to calculate vax administration counts by month')
     
     # Parse the arguments
     args = parser.parse_args()
     
-    # Call the function with the provided filename
-    count_months(args.filename)
+    # Call the function with the provided filename and desired year
+    count_months(args.filename, args.year)

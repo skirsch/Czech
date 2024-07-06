@@ -1,8 +1,13 @@
+# Convert input file from CR format to buckets.py format
+# Example usage
+# python convert.py input_file.csv >output_file.csv
+
 import csv
 from datetime import datetime
 import argparse
+import sys
 
-def process_vaccine_data(input_file, output_file):
+def process_vaccine_data(input_file):
   """
   Reads the large CSV file in Czech Republic format and 
   and writes the results to two output CSV files, one for male, one for female, in the buckets format.
@@ -11,8 +16,8 @@ def process_vaccine_data(input_file, output_file):
       input_file (str): Path to the input CSV file.
       output_file (str)
   """
-  with open(input_file, 'r') as infile, open(output_file, 'w', newline='') as outfile:
-    out_writer = csv.writer(outfile)
+  with open(input_file, 'r') as infile:
+    out_writer = csv.writer(sys.stdout)
     # Write header row for both output files
     out_writer.writerow(['mrn', 'Vax_code', 'Dose_number', 'Vax_date', 'Death_date', 'Vax_name', 'Birth_date'])
       
@@ -63,11 +68,10 @@ if __name__ == "__main__":
     # Set up argument parsing
     parser = argparse.ArgumentParser(description="Convert input file to buckets format.")
     parser.add_argument('in_filename', type=str, help='The input CSV file to convert to buckets format')
-    # optional positional arg with default
-    parser.add_argument('out_filename', type=str, help='Output filename')    
+    
     # Parse the arguments
     args = parser.parse_args()
     
     # Call the function with the provided filename
-    process_vaccine_data(args.in_filename, args.out_filename)
+    process_vaccine_data(args.in_filename)
     

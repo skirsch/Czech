@@ -1,0 +1,1 @@
+CR records in this directory is just the first 10,000 records in the database. See the main README.md file for how to get the source data.

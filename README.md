@@ -29,24 +29,33 @@ You can find these in the scripts directory.
 | Script            | Purpose                                                 |
 | -------------------- | ---------------------------------------------------------- | 
 | [buckets.py](./scripts/buckets.py)     | Detailed time series cohort analysis | 
-| [convert.py](./scripts/convert.py)| Converts the CR data from .csv to the form used by buckets.py (one line per dose)                                                       | 
-| [count_deaths.py](./scripts/count_deaths.py)          | Counts deaths for 1 year after vaccine was given for each age group                                                       | 
-| [count_months.py](./scripts/count_months.py)  | Counts # of doses given each month                               | 
+| [convert.py](./scripts/convert.py)| Converts the CR data from .csv to the form used by buckets.py (one line per dose)   | 
+| [count_deaths.py](./scripts/count_deaths.py)          | Counts deaths for 1 year after vaccine was given for each age group | 
+| [count_months.py](./scripts/count_months.py)  | Counts # of doses given each month  | 
 | [death_rates.py](./scripts/death_rates.py) |    ? |
 | [extract_dose.sh](./scripts/extract_dose.sh) | ? |
 | [extract_month.sh](./scripts/extract_month.sh) | ?|
 | [process_month.sh](./scripts/process_month.sh) | ? |
+| [extract_vax_code.sh](./scripts/process_month.sh)| Extract records matching a vax code|
 
-### Using the scripts to generate the mortality rate for one year from shot administration
+### How to use the scripts to generate the mortality rate for one year from shot administration which is the key outcome
+Note if you are using windows, you'll need to install something like Git Bash in order to have a shell that works, otherwise 
 ```
-python convert.py CR_data_file.csv full.csv 
-extract_dose.sh full.csv 2 >dose2.csv 
-python count_deaths.py dose2.csv
+python convert.py CR_records.csv >records.csv  # convert CR format (1 record per person) to buckets format (1 record per shot)
+bash extract_dose.sh records.csv 2 >dose2.csv        # get dose 2 data
+bash extract_vax_code.sh dose2.csv 1 >pfizer.csv    # get Pfizer shots (vax code 1 for dose 2 vaccines)
+extract_vax_type dose2.csv 2 >moderna.csv   # get Moderna shots used in Dose 2 (vax code 2 for dose 2 vaccines)
+for mfg in "pfizer" "moderna" do
+   python count_deaths.py $mfg.csv >${mfg}_counts.csv
+done
+```
+You now have a pfizer_counts.csv and moderna_counts.csv files which you can analyze in a spreadsheet
 
+### Using the scripts to generate time series cohort analysis files
+
+```
 python buckets.py dose2.csv dose2
 python count_months.py dose2.csv
-
-
 ```
 
 ### Spreadsheets to analyze the time series data and the 1 year mortality data
