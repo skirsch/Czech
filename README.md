@@ -39,13 +39,15 @@ You can find these in the scripts directory.
 | [extract_vax_code.sh](./scripts/process_month.sh)| Extract records matching a vax code|
 
 ### How to use the scripts to generate the mortality rate for one year from shot administration which is the key outcome
-Note if you are using windows, you'll need to install something like Git Bash in order to have a shell that works, otherwise 
+Note if you are using windows, you'll need to install something like Git Bash or even better, use WSL and install Debian. 
 ```
 python convert.py CR_records.csv >records.csv  # convert CR format (1 record per person) to buckets format (1 record per shot)
-bash extract_dose.sh records.csv 2 >dose2.csv        # get dose 2 data
-bash extract_vax_code.sh dose2.csv 1 >pfizer.csv    # get Pfizer shots (vax code 1 for dose 2 vaccines)
-extract_vax_type dose2.csv 2 >moderna.csv   # get Moderna shots used in Dose 2 (vax code 2 for dose 2 vaccines)
-for mfg in "pfizer" "moderna" do
+./extract_dose.sh records.csv 2 >dose2.csv       # get dose 2 data
+./extract_vax_code.sh dose2.csv 1 >pfizer.csv    # get Pfizer shots
+./extract_vax_code.sh dose2.csv 2 >moderna.csv   # get Moderna shots
+
+for mfg in "pfizer" "moderna" 
+do
    python count_deaths.py $mfg.csv >${mfg}_counts.csv
 done
 ```

@@ -1,3 +1,5 @@
 #!/bin/bash
-awk -F,  '$3=='$1 male.csv female.csv >d$1.csv
+# Arguments are filename dose_number
+# writes to stdout
+awk -F, '$3=='$2 $1
  
