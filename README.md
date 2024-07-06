@@ -28,9 +28,54 @@
 * We also did a time-series cohort analysis for those getting dose 2 which showed that mortality rate increased monotonically for around 35 weeks after the shot before leveling off, but there was also a near doubling in mortality starting immediately after the shots: a t=0, the MR of Moderna was nearly double that of Pfizer.
 
 * Indepdent validation of the same effect:
-    * VAERS
-    * Fraiman
-    * Amount of active ingredient
+    * VAERS found similar ratio
+    * Fraiman found similar ratio
+    * Amount of active ingredient is in similar ratio
+
+### Estimating the MRR of Pfizer vaccine vs. saline shot based on severe vaccine injury reports
+I did a survey of severe vaccine injuries in mid-2022 with over 1,000 responses. The last vaccine taken was Pfizer:Moderna with 2:1 odds. [This has been in public view since that time](https://airtable.com/apphnJcLy0a9DJWhp/shr5NYfxwjBQ9IaaO). I don't know what the distribution was for the people who reported, so I can't compute any ratios for them. 
+
+So that means our conservative assumption that Pfizer was safe is mistken.
+
+VAERS and V-safe data confirm this. Pfizer showed up extensively.
+
+The MRR depends on age with the smallest harms in the elderly which explains why total ACM didn't skyrocket. 
+
+But it does suggest that the harms from both vaccines were comparable (within a factor of 2). 
+
+For example, if Pfizer was completely safe, 100% of the vaccine injury reports I received would have been from Moderna. But Pfizer out numbered Moderna 2:1.
+
+So if there was a conservative 4:1 distribution of doses, it means that Pfizer's excess deaths are at least half as many as Moderna since otherwise we can't get to a 2:1 ratio of injury reports. 
+
+So this suggests the true MRR vs. placebo vaccine for the COVID vaccines were something like in this table where the MRR is measured relative to a saline vaccine instead of the Pfizer vaccine as in the previous table.
+age|Pfizer MRR|Moderna MRR|
+|90|1.10|1.32|
+|80|1.10|1.32|
+|70|1.23|1.81|
+|60|1.27|1.96|
+|50|1.33|2.22|
+
+### Implications of this work
+   * Even if the Pfizer vaccine is 100% safe, the Moderna vaccine is a disaster and should be immediately pulled worlwide. Every honest member of the medical community should demand this in every country.
+   * The Pfizer vaccine isn't safe either. 
+   * The FDA, CDC, WHO and medical community needs to publicly admit that they ALL completely missed this huge safety signal that was sitting in plain sight the whole time. This is a huge failure that cost well over 10M lives. It took me only 2 days of analysis work to discover this safety signal once someone told me where I can find the data.
+   * There needs to be a call by lawmakers worldwide to make public health data public for the COVID vaccines and other vaccines.
+   * We need to have a serious debate on vaccination in general especially the link between vaccines and autism. Why was there never an internal investigation at the CDC when they realized scientists studying this issue were ordered to destroy the evidence linking vaccines and autism?
+   * The mainstream press needs to apologize for ignoring scientists who spoke out against the safety of the COVID vaccines. 
+   * We can also prove that the Pfizer vaccine was not safe either. This is obvious by looking at the vaccine injury report rates from the Pfizer vaccine which are off the charts. You don't have to look beyond v-safe for this. But I have over 1,000 vaccine injury reports I've collected and if the Pfizer vaccine was safe, all the injuries would be from Moderna. This is not the case. It's not the case in VAERS either.
+   * This is a collosal fuck up by the FDA, CDC, NIH, Congress, mainstream media, mainstream medical community, and health authorities worldwide. We need accountability.
+   * The vaccine injured should be compensated for their injuries by the drug companies.
+   * We need to REVOKE the liability protection for vaccine manufacturers.
+   * All states should immediately STOP REQUIRING ALL VACCINES to attend school until such time there is a definitive clinical trial showing vaccinated kids are healthier. Thus far, all studies of the vaxxed vs. unvaxxed 
+   * RFK Jr was right the whole time. He should be our next President. He will clean up the mess created by Presidents Biden and Trump.
+   * Both Trump and Biden should apologize publicly for the deaths and harm they have caused.
+   * Health authorities worldwide need to be held accountable for not looking at their own safety data.
+   * The CEOs/Presidents of every company, organization, school, or university that required these shots at any time should either publicly apologize for their mistakes or be fired by their board of directors.
+   * The world should start listening to the advice from people who were censored and stop listening to those who never questioned the safety of the COVID vaccine. The latter people are extremely dangerous.
+   * What allowed this to happen is the "stay in your lane" mentality of the medical community. If I asked most people to look my work, they'd refuse because it isn't in their strike zone and they'd feel unqualified to evaluate it. But the people who where it is in their strike zone will find a way to dismiss it because it doesn't fit with their belief system that has been drummed into them from the start of med school that vaccines are the safest of all interventions and the CDC and FDA would let us know if there were any safety signals at all.  As a result, any evidence showing harms will be dismissed.
+   * Anecdotes were the most immediate and powerful tip off. Never before in my life have I known so many people who were injured or killed by a vaccine. 
+   * It would be really nice if someone (or some government) stepped up and provided funding for VSRF so we can continue our work to tell the truth and expose the fraud.
+
 
 ### About this repository
 Only one country in the world has made publicly available record level data on COVID vaccine statistics: the Czech Republic (CR) aka Czechia.
@@ -187,6 +232,8 @@ paul marik
 pierre kory, 
 aseem malhotra
 andrew briden: fraiman paper
+
+
 
 ### Hall of shame 
 Sir Ian Diamond for ignoring the requests of MPs to do a more thorough analysis of the data
