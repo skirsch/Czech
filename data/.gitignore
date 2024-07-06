@@ -1,0 +1,9 @@
+# this is a data working directory, so don't sync any files by default
+*
+# but we for sure want to sync the source file
+!CR_records.csv.xz
+# absolutely sync the .gitattributes file since that is needed for LFS
+!.*
+# don't sync any files ending in ~
+*~
+
