@@ -32,7 +32,11 @@
     * Fraiman found similar ratio
     * Amount of active ingredient is in similar ratio
 
-### Estimating the MRR of Pfizer vaccine vs. saline shot based on severe vaccine injury reports
+### Estimating the MRR of Pfizer vaccine relative to a saline shot based on severe vaccine injury reports of Pfizer vs. Moderna
+A good proxy for relative excess mortality is the number of very severe vaccine injuries relative to the number of shots given.
+
+For example, if Pfizer was completely safe, 100% of the vaccine injury reports I received would have been from Moderna. But Pfizer out numbered Moderna 2:1. That means it wasn't anywhere close to being a placebo.
+
 I did a survey of severe vaccine injuries in mid-2022 with over 1,000 responses. The last vaccine taken was Pfizer:Moderna with 2:1 odds. [This has been in public view since that time](https://airtable.com/apphnJcLy0a9DJWhp/shr5NYfxwjBQ9IaaO). I don't know what the distribution was for the people who reported, so I can't compute any ratios for them. 
 
 So that means our conservative assumption that Pfizer was safe is mistken.
@@ -43,17 +47,17 @@ The MRR depends on age with the smallest harms in the elderly which explains why
 
 But it does suggest that the harms from both vaccines were comparable (within a factor of 2). 
 
-For example, if Pfizer was completely safe, 100% of the vaccine injury reports I received would have been from Moderna. But Pfizer out numbered Moderna 2:1.
-
 So if there was a conservative 4:1 distribution of doses, it means that Pfizer's excess deaths are at least half as many as Moderna since otherwise we can't get to a 2:1 ratio of injury reports. 
 
-So this suggests the true MRR vs. placebo vaccine for the COVID vaccines were something like in this table where the MRR is measured relative to a saline vaccine instead of the Pfizer vaccine as in the previous table.
+So this suggests the true MRR vs. placebo vaccine for the COVID vaccines were something like in this table where the MRR is expressed relative to a saline vaccine instead of the Pfizer vaccine as in the previous table.
 age|Pfizer MRR|Moderna MRR|
 |90|1.10|1.32|
 |80|1.10|1.32|
 |70|1.23|1.81|
 |60|1.27|1.96|
 |50|1.33|2.22|
+
+Which means both vaccines were dangerous.
 
 ### Implications of this work
    * Even if the Pfizer vaccine is 100% safe, the Moderna vaccine is a disaster and should be immediately pulled worlwide. Every honest member of the medical community should demand this in every country.
@@ -74,6 +78,7 @@ age|Pfizer MRR|Moderna MRR|
    * The world should start listening to the advice from people who were censored and stop listening to those who never questioned the safety of the COVID vaccine. The latter people are extremely dangerous.
    * What allowed this to happen is the "stay in your lane" mentality of the medical community. If I asked most people to look my work, they'd refuse because it isn't in their strike zone and they'd feel unqualified to evaluate it. But the people who where it is in their strike zone will find a way to dismiss it because it doesn't fit with their belief system that has been drummed into them from the start of med school that vaccines are the safest of all interventions and the CDC and FDA would let us know if there were any safety signals at all.  As a result, any evidence showing harms will be dismissed.
    * Anecdotes were the most immediate and powerful tip off. Never before in my life have I known so many people who were injured or killed by a vaccine. 
+   * Once this work is validated by others, any "scientists" who try to attack this analysis without showing a clear flaw, should earn the disrespect of their peers.
    * It would be really nice if someone (or some government) stepped up and provided funding for VSRF so we can continue our work to tell the truth and expose the fraud.
 
 
