@@ -27,8 +27,9 @@ We need to end the liability waiver of vaccine manufacturers, we need to populat
 
 |Brand | # recipients of Dose 2 in 2021|
 |---|---|
-|Pfizer|tbd|
-|Moderna|tbd|
+|Pfizer|5,319,895|
+|Moderna|496,965|
+|Any| 6,257,126|
 
 * This created a perfect real-world randomized clinical trial where we could compute the mortality rates for 1 year after Dose 2 for the two most popular vaccines. 
 * The mortality rate ratio (MRR) was computed individually for each birth year. Because Pfizer was the safer vaccine, we treated it as the control.
