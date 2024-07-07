@@ -9,6 +9,7 @@
 * Pfizer rolled out first in Jan 2021. Moderna rolled out in Feb 2021.
 * Vaccines were randomly distributed for those wishing to get vaxxed.
 * People were not allowed to select which vaccines they got.
+
 |Brand | # recipients of Dose 2 in 2021|
 |---|---|
 |Pfizer|123|
