@@ -242,10 +242,10 @@ andrew briden: fraiman paper
 
 
 ### Negative acknowledgments
-**Sir Ian Diamond, head of the UK ONS**
+**Sir Ian Diamond, head of the UK ONS**  
 for ignoring the requests of UK MPs to do a more thorough analysis of the data
 
-**Te Whatu Ora** 
+**Te Whatu Ora**  
 for pressing criminal charges against Barry Young who was just doing his job to protect the people of New Zealand
 
 Santa Clara Department of public health
