@@ -9,8 +9,11 @@
 * Pfizer rolled out first in Jan 2021. Moderna rolled out in Feb 2021.
 * Vaccines were randomly distributed for those wishing to get vaxxed.
 * People were not allowed to select which vaccines they got.
-* xxxx people received Moderna Dose 2 in 2021
-* xxxx people received Pfizer Dose 2 in 2021
+|Brand | # recipients of Dose 2 in 2021|
+|---|---|
+|Pfizer|123|
+|Moderna|455|
+
 * This created a perfect real-world randomized clinical trial where we could compute the mortality rates for 1 year after Dose 2 for the two most popular vaccines. 
 * The mortality rate ratio (MRR) was computed individually for each birth year. Because Pfizer was the safer vaccine, we treated it as the control.
 * We avoided using unvaccinated as controls because people who decide not to be vaccinated generally have higher mortality than those who opt for vaccination.
@@ -19,6 +22,7 @@
 * To eliminate the rollout differences, we also computed the MRR ignoring Jan and Feb 2021.
 * MMR increased as age decreased as shown here which shows the 5 year rolling average MRR. So 90 means those aged 90 to 94.
 |age|MRR|
+|---|---|
 |90|1.21|
 |80|1.21|
 |70|1.47|
@@ -50,7 +54,8 @@ But it does suggest that the harms from both vaccines were comparable (within a 
 So if there was a conservative 4:1 distribution of doses, it means that Pfizer's excess deaths are at least half as many as Moderna since otherwise we can't get to a 2:1 ratio of injury reports. 
 
 So this suggests the true MRR vs. placebo vaccine for the COVID vaccines were something like in this table where the MRR is expressed relative to a saline vaccine instead of the Pfizer vaccine as in the previous table.
-age|Pfizer MRR|Moderna MRR|
+|age|Pfizer MRR|Moderna MRR|
+|---|---|---|
 |90|1.10|1.32|
 |80|1.10|1.32|
 |70|1.23|1.81|
