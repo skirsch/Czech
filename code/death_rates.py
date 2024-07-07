@@ -1,4 +1,4 @@
-# takes 2 arguments: filename
+# takes 2 arguments: filename month to start at (defaults to 1)
 # outputs csv file to stdout
 
 # Example:

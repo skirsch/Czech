@@ -4,6 +4,6 @@
 !CR_records.csv.xz
 # absolutely sync the .gitattributes file since that is needed for LFS
 !.*
-# don't sync any files ending in ~
+# don't sync any files ending in ~ such as temp files from the editing . files
 *~
 

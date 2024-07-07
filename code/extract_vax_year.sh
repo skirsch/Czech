@@ -1,6 +1,7 @@
 #!/bin/bash
-# Usage: ./extract_vax_code.sh <source_file> <dose code>
-# where dose code 1= Pfizer, 2=Moderna, etc.
-# extract records with the vax code from file
-
-awk -F, '$4 ~ /'$2'$/ {print $0}' $1
+# Usage: ./extract_vax_year <filename> <year>
+# Example: ./extract_vax_year foo.csv 2021
+file=$1
+year=$2
+cmd="\$4 ~ /$year$/ {print \$0}"
+awk -F, "$cmd" $file
