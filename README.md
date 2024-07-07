@@ -24,19 +24,21 @@ We need to end the liability waiver of vaccine manufacturers, we need to populat
 * Pfizer rolled out first in Jan 2021. Moderna rolled out in Feb 2021.
 * Vaccines were randomly distributed for those wishing to get vaxxed.
 * People were not allowed to select which vaccines they got.
+* These are the stats for Dose 2 vaccines given in 2021 along with the total number of deaths until the end of 2022. Note that we compute the deaths later for each age group within 1 year from the shot which is the accurate way to do the mortality rate calculation. So these are just baseline stats. CMR is the crude mortality rate (deaths/doses). If the vaccines are all safe, the CMR numbers should be very similar. CMR deaths per 100,000 persons. Time to die is not factored into this crude estimate, but even without doing that, you can see a HUGE problem.
 
-|Brand | # recipients of Dose 2 in 2021|
-|---|---|
-|Pfizer|5,319,895|
-|Moderna|496,965|
-|Any| 6,257,126|
+|Brand | # recipients of Dose 2 in 2021| # of deaths before 2023 | CMR |
+|---|---|---|---|
+|Pfizer|5,319,895|86,334|1,623|
+|Moderna|496,965|16,461|3,312|
+|Others|440,266|22,067|5,012 |
+|Total| 6,257,126|124,862|1,996|
 
-* This created a perfect real-world randomized clinical trial where we could compute the mortality rates for 1 year after Dose 2 for the two most popular vaccines. 
-* The mortality rate ratio (MRR) was computed individually for each birth year. Because Pfizer was the safer vaccine, we treated it as the control.
+* The randomization of which vaccine someone got created a perfect real-world randomized clinical trial where we could compute the mortality rates for 1 year after Dose 2 for the two most popular vaccines. 
+* We computed the mortality rate ratio (MRR) individually for each birth year. Because Pfizer was the safer vaccine, we treated it as the control (denominator of the ratio)
 * We avoided using unvaccinated as controls because people who decide not to be vaccinated generally have higher mortality than those who opt for vaccination.
-* Using these records we computed a 1-year mortality rate ratio (MRR) computed as MRR=MR(Moderna) / MR(Pfizer) where the 1 year was measured from the time the person got the shot. This helps to reduce any seasonality bias that would be created with a shorter observation interval.
+* Using these records we computed a 1-year mortality rate ratio (MRR) computed as MRR=MR(Moderna) / MR(Pfizer) where the 1 year was measured from the time the person got the shot. This reduce any seasonality bias that would be created with a shorter observation interval. Most people got their dose 2 shots mid-2021.
 * Due to the fact we had no death data past 2022, we restricted the dataset to only those people who were given shot #2 in 2021
-* To eliminate the rollout differences, we also computed the MRR ignoring Jan and Feb 2021.
+* To eliminate the rollout differences, we also computed the MRR ignoring Jan and Feb 2021.The results were insignificantly different. We focus on the whole dataset since that gives all other vaccines the edge since priority was given to the sickest people. So the disparity of MR between vaccines is worse than our calculation (i.e., our calculation is the most conservative estimate)
 * MMR increased as age decreased as shown here which shows the 5 year rolling average MRR. So 90 means those aged 90 to 94. MRR = the mortality rate of Moderna/mortality rate of Pfizer
 
 |age|MRR|
