@@ -1,4 +1,19 @@
 ### Abstract
+Using gold-standard record level data supplied by the Czech Republic on over 10M citizens who randomly were given either the Pfizer or Moderna vaccine, we can compute a 1 year mortality risk ratio (MRR) between the two vaccines where the 1 year starts at the time of receipt of the shot.
+
+We found that for virtually all ages below 92 years old, the Moderna shots were much more dangerous than the Pfizer shots. The younger the person, the higher the mortality increase. For those under 60 years old, the relative mortality was 50% higher.
+
+This means that, even if the Pfizer vaccine was perfectly safe, the Moderna vaccine is a disaster and should be halted immediately since a 50% absolute increase in mortality is an unacceptable risk tradeoff compared to the absolute risk of dying from COVID.
+
+However, we also know that Pfizer generated more vaccine-supected deaths and more serious adverse events than Moderna (counting only those people with 30 or more new serious adverse events after taking their shots) on an absolute basis (because there were more Pfizer shots administered). This suggests that the *excess* mortality caused by the Pfizer shots (excess over a placebo shot) must be at least half the *relative* mortality increase of Moderna shots.
+
+In short, this gold-standard record-level data enables us to prove, for the first time, that both Pfizer and Moderna shots cause an unacceptable increase in all-cause mortality relative to the risk they are trying to mitigate and so therefore, even if the vaccines were 100% effective, they should never been used because the risk/benefit ratio is >1. The vaccines should be stopped immediately.
+
+Also, the people who promoted these vaccines should admit that they were incapable of finding large safety signals and should not be trusted by the public in the future until those people who made the correct calls on these vaccines are promoted into positions of authority.
+
+We need to end the liability waiver of vaccine manufacturers, we need to populate the outside committees of the FDA and CDC with only people who publicly spoke out against these vaccines, and we need to immediately stop mandating all vaccines worldwide because a mistake like this one calls all previous vaccine safety studies into question. We need to start making data on other vaccines public, just like the Czech Republic did for the COVID vaccine data. Hiding public health data from the public never improves health outcomes.
+
+### The specifics
 * We legally obtained over 10M records people in Czech Republic via FOIA.
 * The records preserved privacy by using birth year instead of birth date.
 * There was one record for each person
@@ -123,28 +138,6 @@ make
 THis will make all the files. 
 
 
-### How to use the code to generate the mortality rate for one year from shot administration which is the key outcome
-Note if you are using windows, you'll need to install something like Git Bash or even better, use WSL and install Debian. 
-```
-python convert.py CR_records.csv >records.csv  # convert CR format (1 record per person) to buckets format (1 record per shot)
-./extract_vax_year.sh                            # get only those vaccinated in 2021 to allow 1 year to die
-./extract_dose.sh records.csv 2 >dose2.csv       # get dose 2 data
-./extract_vax_code.sh dose2.csv 1 >pfizer.csv    # get Pfizer shots
-./extract_vax_code.sh dose2.csv 2 >moderna.csv   # get Moderna shots
-
-for mfg in "pfizer" "moderna" 
-do
-   python count_deaths.py $mfg.csv >${mfg}_counts.csv
-done
-```
-You now have a pfizer_counts.csv and moderna_counts.csv files which you can analyze in a spreadsheet
-
-### Using the code to generate time series cohort analysis files
-
-```
-python buckets.py dose2.csv dose2
-python count_months.py dose2.csv
-```
 
 ### Spreadsheets to analyze the time series data and the 1 year mortality data
 
