@@ -21,7 +21,7 @@
 * Using these records we computed a 1-year mortality rate ratio (MRR) computed as MRR=MR(Moderna) / MR(Pfizer) where the 1 year was measured from the time the person got the shot. This helps to reduce any seasonality bias that would be created with a shorter observation interval.
 * Due to the fact we had no death data past 2022, we restricted the dataset to only those people who were given shot #2 in 2021
 * To eliminate the rollout differences, we also computed the MRR ignoring Jan and Feb 2021.
-* MMR increased as age decreased as shown here which shows the 5 year rolling average MRR. So 90 means those aged 90 to 94.
+* MMR increased as age decreased as shown here which shows the 5 year rolling average MRR. So 90 means those aged 90 to 94. MRR = the mortality rate of Moderna/mortality rate of Pfizer
 
 |age|MRR|
 |---|---|
@@ -57,6 +57,7 @@ But it does suggest that the harms from both vaccines were comparable (within a 
 So if there was a conservative 4:1 distribution of doses, it means that Pfizer's excess deaths are at least half as many as Moderna since otherwise we can't get to a 2:1 ratio of injury reports. 
 
 So this suggests the true MRR vs. placebo vaccine for the COVID vaccines were something like in this table where the MRR is expressed relative to a saline vaccine instead of the Pfizer vaccine as in the previous table.
+
 |age|Pfizer MRR|Moderna MRR|
 |---|---|---|
 |90|1.10|1.32|
@@ -114,21 +115,13 @@ irnaty",2022-09-29,,"CO08","Comirnaty Original/Omicron BA.1",2023-10-10,"HH0832"
 ```
 
 
-### Code to analyze the data
-You can find these in the code directory. 
+### Doing the data analysis
+```
+cd code
+make
+```
+THis will make all the files. 
 
-
-| Script    | Purpose       |
-| -------------------- | ------------------------------------ | 
-| [buckets.py](./code/buckets.py)     | Detailed time series cohort analysis | 
-| [convert.py](./code/convert.py)| Converts the CR data from .csv to the form used by buckets.py (one line per dose)   | 
-| [count_deaths.py](./code/count_deaths.py)          | Counts deaths for 1 year after vaccine was given for each age group | 
-| [count_months.py](./code/count_months.py)  | Counts # of doses given each month  | 
-| [death_rates.py](./code/death_rates.py) |    ? |
-| [extract_dose.sh](./code/extract_dose.sh) | ? |
-| [extract_month.sh](./code/extract_month.sh) | ?|
-| [process_month.sh](./code/process_month.sh) | ? |
-| [extract_vax_code.sh](./code/process_month.sh)| Extract records matching a vax code|
 
 ### How to use the code to generate the mortality rate for one year from shot administration which is the key outcome
 Note if you are using windows, you'll need to install something like Git Bash or even better, use WSL and install Debian. 
@@ -248,9 +241,13 @@ andrew briden: fraiman paper
 
 
 
-### Hall of shame 
-Sir Ian Diamond for ignoring the requests of MPs to do a more thorough analysis of the data
-Te Whatu Ora for 
+### Negative acknowledgments
+**Sir Ian Diamond, head of the UK ONS**
+for ignoring the requests of UK MPs to do a more thorough analysis of the data
+
+**Te Whatu Ora** 
+for pressing criminal charges against Barry Young who was just doing his job to protect the people of New Zealand
+
 Santa Clara Department of public health
 CDC for refusing to talk to me about any data
 FDA for refusing to engage on this data
