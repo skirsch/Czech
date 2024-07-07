@@ -21,6 +21,7 @@
 * Due to the fact we had no death data past 2022, we restricted the dataset to only those people who were given shot #2 in 2021
 * To eliminate the rollout differences, we also computed the MRR ignoring Jan and Feb 2021.
 * MMR increased as age decreased as shown here which shows the 5 year rolling average MRR. So 90 means those aged 90 to 94.
+
 |age|MRR|
 |---|---|
 |90|1.21|
@@ -28,6 +29,7 @@
 |70|1.47|
 |60|1.54|
 |50|1.67|
+
 * Below age 50, there were too few total deaths to make accurate comparisons between vaccine types
 * We also did a time-series cohort analysis for those getting dose 2 which showed that mortality rate increased monotonically for around 35 weeks after the shot before leveling off, but there was also a near doubling in mortality starting immediately after the shots: a t=0, the MR of Moderna was nearly double that of Pfizer.
 
