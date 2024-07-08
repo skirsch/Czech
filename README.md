@@ -144,6 +144,8 @@ cd code
 make
 ``` 
 
+The build time for all files is about 1 hour and 20 minutes.
+
 To start over from scratch:
 ```
 make clean

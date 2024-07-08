@@ -19,7 +19,7 @@ time_series_files=$(datadir)/ts_*
 
 # complete when we have all the time series analyses and MR stats files
 all: $(time_series_pfizer) $(time_series_moderna) $(pfizer_stats) $(moderna_stats)
-	@echo "I'm all done... and Pfizer and Moderna are finished after you analyze the output."
+	@echo "Completed successfully."
 
 # compute time series for Pfizer dose 2 given in 2021
 $(time_series_pfizer): $(pfizer_dose2_21_file)
@@ -32,31 +32,31 @@ $(time_series_moderna): $(moderna_dose2_21_file)
 	@python buckets.py $(moderna_dose2_21_file) $(datadir)/ts_moderna_d2
 
 $(source_file): $(compressed_source_file)
-	@echo "expanding source data file..."
+	@echo "Expanding source data file..."
 	@xz  -dk $(compressed_source_file) # decompress and keep original file
 
 # convert CR format (1 record per person) to buckets format (1 record per shot)
 $(record_file):	$(source_file)
-	@echo "converting to buckets.py format..."
+	@echo "Converting to buckets.py format..."
 	@python convert.py $(source_file) >$(record_file)  
 
 # get only those vaccinated in 2021 to allow 1 year to die
 $(records21_file): $(record_file)
-	@echo "extracting shots given in 2021"
+	@echo "Extracting shots given in 2021"
 	@./extract_vax_year.sh $(record_file) 2021 >$(records21_file)
 
 $(dose2_21_file): $(records21_file)
-	@echo "extracting shots dose 2 from the shots given in 2021 file"
+	@echo "Extracting dose 2 from the shots given in 2021 file"
 	@./extract_dose.sh $(records21_file) 2 >$(dose2_21_file)
 
 # pfizer for dose 2 is vax code=1
 $(pfizer_dose2_21_file): $(dose2_21_file)
-	@echo "extracting pfizer doses for d2 in 2021"
+	@echo "Extracting pfizer doses for d2 in 2021"
 	@./extract_vax_code.sh $(dose2_21_file) 1 >$(pfizer_dose2_21_file) 
 
 # Moderna for dose 2 is vax code=2
 $(moderna_dose2_21_file): $(dose2_21_file)
-	@echo "extracting moderna doses for d2 in 2021"
+	@echo "Extracting moderna doses for d2 in 2021"
 	@./extract_vax_code.sh $(dose2_21_file) 2 >$(moderna_dose2_21_file) 
 
 # note the death_rates.py takes an optional argument for month to start at (defaults at 1 which is Jan)
@@ -66,11 +66,11 @@ $(moderna_dose2_21_file): $(dose2_21_file)
 # if anything, it will disadvantage Pfizer and make Moderna look safer.
 
 $(pfizer_stats): $(pfizer_dose2_21_file)
-	@echo "computing MR for 1 year from shot #2 given in 2021 for Pfizer (vax code 1)"
+	@echo "Computing MR for 1 year from shot #2 given in 2021 for Pfizer by age (vax code 1)"
 	@python death_rates.py  $(pfizer_dose2_21_file) >$(pfizer_stats)    
 
 $(moderna_stats): $(moderna_dose2_21_file)
-	@echo "computing MR for 1 year from shot #2 given in 2021 for moderna (vax code 2)"
+	@echo "computing MR for 1 year from shot #2 given in 2021 for moderna by age (vax code 2)"
 	@python death_rates.py  $(moderna_dose2_21_file) >$(moderna_stats) 
 
 # remove all files except for the compressed source file we started with
