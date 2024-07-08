@@ -10,17 +10,14 @@ For each record, it will increment at least one counter and
 a second counter if the person died within 1 year of last shot.
 YOB=year of birth
 
-shots[YOB][dose1][dose2]+=1  # increment shot count for 
-deaths[YOB][dose1][dose2]+=1  # count number died within 1 year of last shot date
+shots[YOB][dose1_type][dose2_type]+=1  # increment shot count for 
+deaths[YOB][dose1_type][dose2_type]+=1  # count number died within 1 year of last shot date
 
-where dose1 and dose2 are from:
+where dose1_type and dose2_type are from:
 0=no vax
 1=pfizer
 2=moderna
 3=other vax
-
-
-
 '''
 #temporary till finish coding so make is happy
 print("done")
@@ -37,22 +34,50 @@ import sys
 # set to 1 to get everything.
 # set to 3 to ignore Jan and Feb
 
+# Fields
+SEX=0
+YOB=1
+DOD=2
+VD1=3
+VC1=5
+VD2=7
+VC2=9
+# Vax1 date, Vax1 batch code, Vax1 Code, Vax1 Name, 
+# sex
+MALE=0
+FEMALE=1
+OTHER=2
+
+# vax type
+PFIZER=0
+MODERNA=1
+OTHER=2
+UNVAX=3
+
+
 def track_vaccine_data(filename, start_month):
     # Initialize dictionaries to keep track of counts
-    birth_year_counts = defaultdict(int)
-    death_within_12_months_counts = defaultdict(int)
-    monthly_vaccine_counts = defaultdict(lambda: defaultdict(int))
+    # 0 index is 1920, index 100 is 2020
+    # indices are [YOB][Sex][Vax type of shot 1][vax type of shot 2]
+    # where YOB 0 is 1920, 100=2020, Sex is 0-3, and the vax types range from 0 to 3
+    shot_count = [[[[0 for _ in range(4)] for _ in range(4)] for _ in range(3)] for _ in range(101)]
+    death_count = [[[[0 for _ in range(4)] for _ in range(4)] for _ in range(3)] for _ in range(101)]
+
+    # output will iterate over the indices and output a column for each index value as well as two columns for the shot and death counts
+    # so there are 6 output columns and 48 rows for each of 101 birth years, so 4848 rows x 6 columns so 29,088 cells with data
 
     # Open the file and read it line by line
     with open(filename, 'r') as file:
         reader = csv.reader(file)
-        for row in reader:
+        for col in reader:
             # Extract the relevant fields
-            vaccine_date_str = row[3]
-            death_date_str = row[4]
-            birth_year_str = row[6]
-            if not vaccine_date_str:
-                continue
+            sex=col[SEX]
+            yob=col[YOB]
+            dod=col[DOD]
+            vd1=col[VD1]
+            vc1=col[VC1]
+            vd2=col[VD2]
+            vc2=col[VC2]
             try:
                 # Parse the vaccine date
                 vaccine_date = datetime.strptime(vaccine_date_str, "%m/%d/%Y")
