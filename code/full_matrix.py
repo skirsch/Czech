@@ -38,14 +38,24 @@ import sys
 # set to 1 to get everything.
 # set to 3 to ignore Jan and Feb
 
-# Fields
-SEX=0
-YOB=1
-DOD=2
-VD1=3
-VC1=5
-VD2=7
-VC2=9
+# Column names
+YOB='YOB'
+SEX='SEX'
+MFG1='MFG1'
+MFG2='MFG2'
+MONTH='MONTH'
+NUM_SHOT='# shot'
+NUM_DIED='# died'
+
+# Input Field indexes
+I_SEX=0
+I_YOB=1
+I_DOD=2
+I_VD1=3
+I_MFG1=5
+I_VD2=7
+I_MFG2=9
+
 # Vax1 date, Vax1 batch code, Vax1 Code, Vax1 Name, 
 # sex
 MALE="M"
@@ -58,11 +68,11 @@ MODERNA="M"
 OTHER="O"
 UNVAX="U"
 
-# Define the ranges and categories
-YOB = range(1920, 2021)  # 1920 to 2020 inclusive
-SEX = [MALE, FEMALE, UNKNOWN]
-MFG = [PFIZER, MODERNA, OTHER, UNVAX]
-MONTH = list(range(1, 13))  # month of most recent shot
+# Define the range of allowable values
+R_YOB = range(1920, 2021)  # 1920 to 2020 inclusive
+R_SEX = [MALE, FEMALE, UNKNOWN]
+R_MFG = [PFIZER, MODERNA, OTHER, UNVAX]
+R_MONTH = list(range(1, 13))  # month of most recent shot
 
 Date=namedtuple('Date', ['month', 'day', 'year']) 
 
@@ -73,6 +83,14 @@ def parse_date(v_date):
     except:
         return Date(0,0,0)
         
+MFG_DICT = '{'CO01': PFIZER, 'CO02': MODERNA, 'CO21':PFIZER}'
+def parse_mfg(mfg):
+    if not mfg:
+        return UNVAX
+    try:
+        return MFG_DICT[mfg]
+    except:
+        return OTHER
 
 def track_vaccine_data(filename, start_month):
     # Initialize dictionaries to keep track of counts
@@ -91,8 +109,8 @@ def track_vaccine_data(filename, start_month):
     combinations = list(itertools.product(YOB, SEX, MFG, MFG, MONTH))
 
     # Create a DataFrame with MultiIndex
-    index = pd.MultiIndex.from_tuples(combinations, names=['yob', 'sex', 'mfg1', 'mfg2', 'month'])
-    df = pd.DataFrame(index=index, columns=['# shot', '# died']).fillna(0)
+    index = pd.MultiIndex.from_tuples(combinations, names=[YOB, SEX, MFG1, MFG2, MONTH])
+    df = pd.DataFrame(index=index, columns=[NUM_SHOT, NUM_DIED]).fillna(0)
 
     # Example increment: df.loc[(2011, 'M', 'b', ....), '# shot'] += 1
 
@@ -105,44 +123,40 @@ def track_vaccine_data(filename, start_month):
         reader.__next__()  # bypass header
         for row in reader:
             # Extract the relevant fields from the Czech source file. Everything is read as a string.
-            # x = 3 if y == 1 else 4    # to set value to 3 or 4 based on y
-            sex=row[SEX]
+
+            sex=row[I_SEX]
             sex=sex if sex is not None else UNKNOWN
-            yob=int(row[YOB])
-            dod=parse_date(row[DOD])
-            vd1=parse_date(row[VD1])
-            vc1=parse_mfg(row[VC1])
-            vd2=parse_date(row[VD2])
-            vc2=parse_mfg(row[VC2])
-            try:
+            yob=int(row[I_YOB])
+            dod=parse_date(row[I_DOD])
+            vd1=parse_date(row[I_VD1])
+            mfg1=parse_mfg(row[I_MFG1])
+            vd2=parse_date(row[I_VD2])
+            mfg2=parse_mfg(row[I_MFG2])
                 
-                month = v_date.month
-                # check to see if the record qualifies to be tallied befreo doing any tallying!
-                if month<start_month:
-                        continue    # ignore this record and go to the next if not in scope
-                # Parse the birth year
-                birth_year = int(datetime.strptime(birth_year_str, "%m/%d/%Y").year)
+            # get month of most recent shot
+            month = max(vd1.month, vd2.month)   
+            
+            
+            # if not vaccinated for dose 1 or dose 2 or most recent dose month is less than start_month, ignore the record
+            if not month or month<start_month:
+                continue
 
-                # count the number of doses
-                birth_year_counts[birth_year] += 1
-                monthly_vaccine_counts[birth_year][month] += 1
+            # now tally to the dose counter
+            df.loc[(yob, sex, mfg1, mfg2, month), NUM_SHOT] += 1
 
-                if death_date_str:
-                    # Parse the death date
-                    death_date = datetime.strptime(death_date_str, "%m/%d/%Y")
-                    
-                    # Calculate the difference in days
-                    days_diff = (death_date - vaccine_date).days
+            # if the person didn't die, we're done.
+            if not dod.year:
+                continue
+            
+            # now tally to the death counter if died within 1 year of dose
+            date_of_vax=vd2 if vd2.year else vd1
+            # Calculate the difference in days
+            days_diff = (dod - date_of_vax).days
 
-                    # Check if the death occurred within 12 months (365 days)
-                    if 0 <= days_diff <= 365:
-                        death_within_12_months_counts[birth_year] += 1
-            except ValueError:
-                # Handle the case where the date format is incorrect
-                print(f"Invalid date format in line: {row}", file=sys.stderr)
+            # Check if the death occurred within 12 months (365 days)
+            if 0 <= days_diff <= 365:
+                df.loc[(yob, sex, mfg1, mfg2, month), NUM_SHOT] += 1
 
-    # Write the results to standard output in CSV format
-    
     # Write DataFrame to CSV
     df.to_csv(sys.stdout)
 
