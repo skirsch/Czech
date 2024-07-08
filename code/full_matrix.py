@@ -13,21 +13,25 @@ YOB=year of birth
 shots[YOB][dose1_type][dose2_type]+=1  # increment shot count for 
 deaths[YOB][dose1_type][dose2_type]+=1  # count number died within 1 year of last shot date
 
-where dose1_type and dose2_type are from:
-0=no vax
-1=pfizer
-2=moderna
-3=other vax
+Czech file format is:
+Sex, Year of Birth, Date of Death, Vax1 date, Vax1 batch code, Vax1 Code, Vax1 Name, <repeat these 4 fields for 7 vaccines>
+"F",1956,,2021-05-03,"EY3014","CO01","Comirnaty",2021-06-14,"FD0168","CO01","Comirnaty",2021-12-11,"1F1020A","CO01","Com
+irnaty",2022-09-29,,"CO08","Comirnaty Original/Omicron BA.1",2023-10-10,"HH0832","CO20","Comirnaty Omicron XBB.1.5.",,,,
+,,,,
+
+
 '''
 #temporary till finish coding so make is happy
 print("done")
 exit()
 
-
+# import numpy as np
+import pandas as pd
+import itertools
 import argparse
 import csv
 from datetime import datetime
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import sys
 
 # start_month is minimum month number for row to be processed
@@ -44,24 +48,53 @@ VD2=7
 VC2=9
 # Vax1 date, Vax1 batch code, Vax1 Code, Vax1 Name, 
 # sex
-MALE=0
-FEMALE=1
-OTHER=2
+MALE="M"
+FEMALE="F"
+UNKNOWN="X"
 
 # vax type
-PFIZER=0
-MODERNA=1
-OTHER=2
-UNVAX=3
+PFIZER="P"
+MODERNA="M"
+OTHER="O"
+UNVAX="U"
 
+# Define the ranges and categories
+YOB = range(1920, 2021)  # 1920 to 2020 inclusive
+SEX = [MALE, FEMALE, UNKNOWN]
+MFG = [PFIZER, MODERNA, OTHER, UNVAX]
+MONTH = list(range(1, 13))  # month of most recent shot
+
+Date=namedtuple('Date', ['month', 'day', 'year']) 
+
+def parse_date(v_date):
+    # return a structure where you can reference .month, .year as numbers. Set all components to 0 if no date
+    try:
+        return datetime.strptime(v_date, "%m/%d/%Y")
+    except:
+        return Date(0,0,0)
+        
 
 def track_vaccine_data(filename, start_month):
     # Initialize dictionaries to keep track of counts
     # 0 index is 1920, index 100 is 2020
-    # indices are [YOB][Sex][Vax type of shot 1][vax type of shot 2]
-    # where YOB 0 is 1920, 100=2020, Sex is 0-3, and the vax types range from 0 to 3
-    shot_count = [[[[0 for _ in range(4)] for _ in range(4)] for _ in range(3)] for _ in range(101)]
-    death_count = [[[[0 for _ in range(4)] for _ in range(4)] for _ in range(3)] for _ in range(101)]
+
+    # indices are [YOB, Sex, Vax type of shot 1, vax type of shot 2, month # of most recent shot]
+
+    # Lists are too inefficent
+    # shot_count = [[[[0 for _ in range(4)] for _ in range(4)] for _ in range(3)] for _ in range(101)]
+    # can do this, but dataframes are better:
+    # shot_count = np.zeros((101,3,4,4,12), dtype=int)
+    # death_count = np.zeros((101,3,4,4,12), dtype=int)   # death within 1 yr of most recent shot
+
+
+    # Generate all combinations of the categories. MFG is listed twice since dose 1 vs. dose 2
+    combinations = list(itertools.product(YOB, SEX, MFG, MFG, MONTH))
+
+    # Create a DataFrame with MultiIndex
+    index = pd.MultiIndex.from_tuples(combinations, names=['yob', 'sex', 'mfg1', 'mfg2', 'month'])
+    df = pd.DataFrame(index=index, columns=['# shot', '# died']).fillna(0)
+
+    # Example increment: df.loc[(2011, 'M', 'b', ....), '# shot'] += 1
 
     # output will iterate over the indices and output a column for each index value as well as two columns for the shot and death counts
     # so there are 6 output columns and 48 rows for each of 101 birth years, so 4848 rows x 6 columns so 29,088 cells with data
@@ -69,19 +102,21 @@ def track_vaccine_data(filename, start_month):
     # Open the file and read it line by line
     with open(filename, 'r') as file:
         reader = csv.reader(file)
-        for col in reader:
-            # Extract the relevant fields
-            sex=col[SEX]
-            yob=col[YOB]
-            dod=col[DOD]
-            vd1=col[VD1]
-            vc1=col[VC1]
-            vd2=col[VD2]
-            vc2=col[VC2]
+        reader.__next__()  # bypass header
+        for row in reader:
+            # Extract the relevant fields from the Czech source file. Everything is read as a string.
+            # x = 3 if y == 1 else 4    # to set value to 3 or 4 based on y
+            sex=row[SEX]
+            sex=sex if sex is not None else UNKNOWN
+            yob=int(row[YOB])
+            dod=parse_date(row[DOD])
+            vd1=parse_date(row[VD1])
+            vc1=parse_mfg(row[VC1])
+            vd2=parse_date(row[VD2])
+            vc2=parse_mfg(row[VC2])
             try:
-                # Parse the vaccine date
-                vaccine_date = datetime.strptime(vaccine_date_str, "%m/%d/%Y")
-                month = vaccine_date.month
+                
+                month = v_date.month
                 # check to see if the record qualifies to be tallied befreo doing any tallying!
                 if month<start_month:
                         continue    # ignore this record and go to the next if not in scope
@@ -107,15 +142,9 @@ def track_vaccine_data(filename, start_month):
                 print(f"Invalid date format in line: {row}", file=sys.stderr)
 
     # Write the results to standard output in CSV format
-    writer = csv.writer(sys.stdout)
-    header = ['Year of Birth', 'Number of People', 'Died Within 1 Year'] + \
-             ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    writer.writerow(header)
-
-    for year in sorted(birth_year_counts.keys()):
-        row = [year, birth_year_counts[year], death_within_12_months_counts[year]]
-        row += [monthly_vaccine_counts[year][month] for month in range(1, 13)]
-        writer.writerow(row)
+    
+    # Write DataFrame to CSV
+    df.to_csv(sys.stdout)
 
 if __name__ == "__main__":
     # Set up argument parsing
