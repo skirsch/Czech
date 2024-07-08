@@ -16,10 +16,19 @@ moderna_stats=$(datadir)/moderna_stats.csv
 time_series_pfizer=$(datadir)/ts_pfizer_d2_month_dose_week_decade.txt 
 time_series_moderna=$(datadir)/ts_moderna_d2_month_dose_week_decade.txt 
 time_series_files=$(datadir)/ts_*
+full_matrix=$(datadir)/full_matrix.csv
 
 # complete when we have all the time series analyses and MR stats files
-all: $(time_series_pfizer) $(time_series_moderna) $(pfizer_stats) $(moderna_stats)
-	@echo "Completed successfully."
+all: $(time_series_pfizer) $(time_series_moderna) $(pfizer_stats) $(moderna_stats) $(full_matrix)
+	@echo "All done!"
+
+# compute a 4x4 matrix (16 columns) + num shots + num deaths within 1 yr from last shot.
+# Computed for each birth year.
+# This is the ultimate indicator of what is going on. Four states for each dose.
+# States are: unvaxxed, Pfizer, Moderna, Other vax
+$(full_matrix): $(source_file)
+	@echo "Computing the full matrix analysis buckets from original source file"
+	@python full_matrix.py $(source_file) >$(full_matrix)
 
 # compute time series for Pfizer dose 2 given in 2021
 $(time_series_pfizer): $(pfizer_dose2_21_file)
@@ -76,6 +85,6 @@ $(moderna_stats): $(moderna_dose2_21_file)
 # remove all files except for the compressed source file we started with
 clean:
 	@rm -f $(source_file) $(record_file) $(records21_file) $(dose2_21_file) $(pfizer_dose2_21_file) $(moderna_dose2_21_file)
-	@rm -f $(pfizer_stats) $(moderna_stats) $(time_series_files)
+	@rm -f $(pfizer_stats) $(moderna_stats) $(time_series_files) $(full_matrix)
 
 	
