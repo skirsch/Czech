@@ -55,8 +55,9 @@ I_YOB=1
 I_DOD=2
 I_VD1=3
 I_MFG1=5
-I_VD2=7
-I_MFG2=9
+I_VD2=I_VD1+4
+I_MFG2=I_MFG1+4
+I_MFG3=I_MFG2+4
 
 # Vax1 date, Vax1 batch code, Vax1 Code, Vax1 Name, 
 # sex
@@ -71,11 +72,11 @@ OTHER="O"
 UNVAX="U"
 
 # Define the range of allowable values
-R_STUDY = list(range(1,4))   # study # enrolled in
+R_STUDY = list(range(1,4))   # study # enrolled in (1 shot, 2 shot, unvaxxed)
 R_YOB = range(1920, 2021)  # 1920 to 2020 inclusive
 R_SEX = [MALE, FEMALE, UNKNOWN]
 R_MFG = [PFIZER, MODERNA, OTHER, UNVAX]
-R_MONTH = list(range(1, 13))  # month enrolled
+R_MONTH = list(range(0, 13))  # month in 2021 enrolled in the study. 0 means unvaxxed enrolled in 2022.
 
 
 Date=namedtuple('Date', ['month', 'day', 'year']) 
@@ -141,8 +142,9 @@ def track_vaccine_data(filename, start_month):
             mfg1=parse_mfg(row[I_MFG1])
             vd2=parse_date(row[I_VD2])
             mfg2=parse_mfg(row[I_MFG2])
+            mfg3=parse_mfg(row[I_MFG3])
                 
-            # get the number of shots given in 2021 which determine which studies the person is eligible for
+            # get the number of eligible shots given in 2021 which determine which studies the person is eligible for
             num_shots_2021 = sum(1 for vax_date in [vd1, vd2] if vax_date.year == 2021 and vax_date.month >=start_month)
             
             # Enrollment condition must NEVER look forward in time to determine enrollment eligibility! 
@@ -152,25 +154,29 @@ def track_vaccine_data(filename, start_month):
             # And we have an enroll on no vax at all given in 2021, enroll on Jan 1 2022, and record death if happened in 2022
             # so that means a given record can tally to no rows, one row, or two rows!!!
             
-            # STUDY #1: got a shot in 2021 on or after start_month. Enroll on first shot date. Death counted if within 1 yr from enroll
-            # note the second eligible vaccine in the record for analysis purposes if any.
-            if num_shots_2021 >=1:
+            # simply record all 3 vaccines in the record with month
+            # extend record to cover 0 as a month
+            # all tallies show the vaccine count details for 3 vaccines. 
 
-            # STUDY #2: got two shots in 2021 where second shot on or after start_month. Enroll on second shot date. 
-            # Death counted for 1 year from enroll
-            if num_shots_2021 ==2:
+            # record month enrolled, list mfg1, mfg2, mfg3 slot values
 
+            # STUDY #1: got shot #1 in 2021 on or after start_month. Enroll on shot #1 date. Death counted if within 1 yr from enroll
+            # Record mfg of all three doses.
+            
+            if vd1.year==2021:
+                df.loc[(1, yob, sex, vd1.month,mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
+             
+            # STUDY #2: got shot #2 in 2021 where second shot on or after start_month. Enroll on second shot date. 
+            # Death counted for 1 year from enroll. Record mfg of all 3 vax.
+            if vd2.year==2021:
+                df.loc[(2, yob, sex, vd2.month, mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
+            
             # Study #3: got no shots in 2021 and alive on Jan 1, 2022. Death counted for 1 year from enroll.
-            # if not vaccinated for dose 1 or dose 2 or most recent dose month is less than start_month, ignore the record
+            # Show mfg of all 3 shots (usually UUU)
             if num_shots_2021 ==0:
-
-            if not latest_month or latest_month<start_month:
-                continue
-            # no deaths post 2022, so make sure person vaxxed with latest shot in 2021 to allow 1 year to die
-            if latest_year!=2021:
-                continue
-            # now tally to the dose counter
-            df.loc[(yob, sex, mfg1, mfg2, latest_month), NUM_ENROLLED] += 1 
+                df.loc[(3, yob, sex, 0 , mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
+           
+          
 
             # if the person didn't die, we're done.
             if not dod.year:
