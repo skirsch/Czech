@@ -22,10 +22,9 @@ full_matrix=$(datadir)/full_matrix.csv
 all: $(time_series_pfizer) $(time_series_moderna) $(pfizer_stats) $(moderna_stats) $(full_matrix)
 	@echo "All done!"
 
-# compute a 4x4 matrix (16 columns) + num shots + num deaths within 1 yr from last shot.
-# Computed for each birth year.
+# computes 4 different studies: shot1 given in 2021, shot2 given in 2021, shot3 given in 2021, unvaxxed in 2021
 # This is the ultimate indicator of what is going on. Four states for each dose.
-# States are: unvaxxed, Pfizer, Moderna, Other vax
+# Takes 46 minutes to run.
 $(full_matrix): $(source_file)
 	@echo "Computing the full matrix analysis buckets from original source file"
 	@python full_matrix.py $(source_file) >$(full_matrix)

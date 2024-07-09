@@ -6,14 +6,9 @@ Output written to std out is a .csv file with a full matrix analysis
 Example usage:
 python full_matrix.py CR_records.csv >full_matrix.csv
 
-For each record, it will increment at least one counter and 
-a second counter if the person died within 1 year of last shot.
-YOB=year of birth
+Four different "clinical trials" are done in parallel.
 
-shots[YOB][dose1_type][dose2_type]+=1  # increment shot count for 
-deaths[YOB][dose1_type][dose2_type]+=1  # count number died within 1 year of last shot date
-
-Czech file format is:
+Czech input file format is:
 Sex, Year of Birth, Date of Death, Vax1 date, Vax1 batch code, Vax1 Code, Vax1 Name, <repeat these 4 fields for 7 vaccines>
 "F",1956,,2021-05-03,"EY3014","CO01","Comirnaty",2021-06-14,"FD0168","CO01","Comirnaty",2021-12-11,"1F1020A","CO01","Com
 irnaty",2022-09-29,,"CO08","Comirnaty Original/Omicron BA.1",2023-10-10,"HH0832","CO20","Comirnaty Omicron XBB.1.5.",,,,
@@ -21,9 +16,6 @@ irnaty",2022-09-29,,"CO08","Comirnaty Original/Omicron BA.1",2023-10-10,"HH0832"
 
 
 '''
-# placeholder
-print('done')
-exit()
 
 # import numpy as np
 import pandas as pd
@@ -36,16 +28,16 @@ import sys
 
 # start_month is minimum month number for row to be processed
 # set to 1 to get everything.
-# set to 3 to ignore Jan and Feb
-
+# set to 3 to ignore shots given in Jan and Feb 2021
 
 # Column names
 STUDY='STUDY'
 YOB='YOB'
 SEX='SEX'
+MONTH='MONTH'  # enrollment month in 2021 (0 if unvaxxed)
 MFG1='MFG1'
 MFG2='MFG2'
-MONTH='MONTH'
+MFG3='MFG3'
 NUM_ENROLLED='# enrolled'
 NUM_DIED='# died'
 
@@ -73,17 +65,19 @@ OTHER="O"
 UNVAX="U"
 
 # Define the range of allowable values
-R_STUDY = list(range(1,4))   # study # enrolled in (1 shot, 2 shot, unvaxxed)
+R_STUDY = list(range(1,5))   # four studies (1 shot, 2 shot, 3 shot, unvaxxed)
 R_YOB = range(1920, 2021)  # 1920 to 2020 inclusive
 R_SEX = [MALE, FEMALE, UNKNOWN]
-R_MFG = [PFIZER, MODERNA, OTHER, UNVAX]
 R_MONTH = list(range(0, 13))  # month in 2021 enrolled in the study. 0 means unvaxxed enrolled in 2022.
+R_MFG = [PFIZER, MODERNA, OTHER, UNVAX]
 
 
 Date=namedtuple('Date', ['month', 'day', 'year']) 
 
 def parse_date(v_date):
     # return a structure where you can reference .month, .year as numbers. Set all components to 0 if no date
+    # Note: leading spaces in the test file before the date will cause the date to be zero
+    # So , 2021-22-22, has a leading space
     try:
         return datetime.strptime(v_date, "%Y-%m-%d")
     except:
@@ -91,7 +85,8 @@ def parse_date(v_date):
     
 JAN_2022=parse_date("2022-01-01")    
         
-MFG_DICT = {'CO01': PFIZER, 'CO02': MODERNA, 'CO21':PFIZER}
+MFG_DICT = {'CO01': PFIZER, 'CO02': MODERNA, 'CO08':PFIZER, 'CO09': PFIZER, 'CO15': MODERNA, 'CO16': PFIZER, 
+            'CO19': MODERNA, 'CO20': PFIZER, 'CO21':PFIZER, 'CO23':PFIZER }
 def parse_mfg(mfg):
     if not mfg:
         return UNVAX
@@ -101,6 +96,10 @@ def parse_mfg(mfg):
         return OTHER
 
 def died_within_year(dod, date_of_shot):
+    # if didn't die, dod is Date and date_of_shot will be a datetime object
+    # so make this test here to avoid a type mismatch in the subtraction in the last line
+    if dod.year==0:
+        return(False)
     # compute difference in days
     days_diff = (dod - date_of_shot).days
     # Check if the death occurred within 12 months (365 days)
@@ -123,11 +122,12 @@ def track_vaccine_data(filename, start_month):
     # death_count = np.zeros((101,3,4,4,12), dtype=int)   # death within 1 yr of most recent shot
 
     # Generate all combinations of the categories. MFG is listed twice since dose 1 vs. dose 2
-    combinations = list(itertools.product(R_STUDY, R_YOB, R_SEX, R_MFG, R_MFG, R_MONTH))
+    combinations = list(itertools.product(R_STUDY, R_YOB, R_SEX, R_MONTH, R_MFG, R_MFG, R_MFG))
 
     # Create a DataFrame with MultiIndex
-    index = pd.MultiIndex.from_tuples(combinations, names=[STUDY, YOB, SEX, MFG1, MFG2, MONTH])
+    index = pd.MultiIndex.from_tuples(combinations, names=[STUDY, YOB, SEX, MONTH, MFG1, MFG2, MFG3])
 
+    # now append the two counters to use at that index location and set counters to zero
     df = pd.DataFrame(index=index, columns=[NUM_ENROLLED, NUM_DIED]).fillna(0)
 
     # output will iterate over the indices and output a column for each index value as well as two columns for the shot and death counts
@@ -145,13 +145,14 @@ def track_vaccine_data(filename, start_month):
             sex=sex if sex !='' else UNKNOWN
             yob=int(row[I_YOB])
             if not yob in R_YOB:
-                continue  # ignore it if no YOB
+                continue  # ignore the row if not in years I track
             dod=parse_date(row[I_DOD])
+
             vd1=parse_date(row[I_VD1])
             mfg1=parse_mfg(row[I_MFG1])
             vd2=parse_date(row[I_VD2])
             mfg2=parse_mfg(row[I_MFG2])
-            vd3=parse_mfg(row[I_VD3])
+            vd3=parse_date(row[I_VD3])
             mfg3=parse_mfg(row[I_MFG3])
                 
             # get the number of eligible shots given in 2021 which determine which studies the person is eligible for
@@ -172,7 +173,7 @@ def track_vaccine_data(filename, start_month):
 
             # STUDY #1: got shot #1 in 2021 on or after start_month. Enroll on shot #1 date. Death counted if within 1 yr from enroll
             # Record mfg of all three doses.
-            
+
             if vd1.year==2021:
                 df.loc[(1, yob, sex, vd1.month,mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
                 if died_within_year(dod,vd1):
@@ -196,10 +197,7 @@ def track_vaccine_data(filename, start_month):
             if num_shots_2021 ==0:
                 df.loc[(4, yob, sex, 0 , mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
                 if died_within_year(dod, JAN_2022):
-                     df.loc[(4, yob, sex, 0, mfg1, mfg2, mfg3), NUM_DIED] += 1           
-          
-
- 
+                     df.loc[(4, yob, sex, 0, mfg1, mfg2, mfg3), NUM_DIED] += 1                     
     
     # remove rows with enrollment=0 to make things more managable
     df = df[df[NUM_ENROLLED] != 0]
