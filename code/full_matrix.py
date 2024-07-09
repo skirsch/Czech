@@ -57,6 +57,7 @@ I_VD1=3
 I_MFG1=5
 I_VD2=I_VD1+4
 I_MFG2=I_MFG1+4
+I_VD3=I_VD2+4
 I_MFG3=I_MFG2+4
 
 # Vax1 date, Vax1 batch code, Vax1 Code, Vax1 Name, 
@@ -87,6 +88,8 @@ def parse_date(v_date):
         return datetime.strptime(v_date, "%Y-%m-%d")
     except:
         return Date(0,0,0)
+    
+JAN_2022=parse_date("2022-01-01")    
         
 MFG_DICT = {'CO01': PFIZER, 'CO02': MODERNA, 'CO21':PFIZER}
 def parse_mfg(mfg):
@@ -97,6 +100,12 @@ def parse_mfg(mfg):
     except:
         return OTHER
 
+def died_within_year(dod, date_of_shot):
+    # compute difference in days
+    days_diff = (dod - date_of_shot).days
+    # Check if the death occurred within 12 months (365 days)
+    return (0 <= days_diff <= 365)
+        
 def track_vaccine_data(filename, start_month):
     # Initialize dictionaries to keep track of counts
     # 0 index is 1920, index 100 is 2020
@@ -142,10 +151,11 @@ def track_vaccine_data(filename, start_month):
             mfg1=parse_mfg(row[I_MFG1])
             vd2=parse_date(row[I_VD2])
             mfg2=parse_mfg(row[I_MFG2])
+            vd3=parse_mfg(row[I_VD3])
             mfg3=parse_mfg(row[I_MFG3])
                 
             # get the number of eligible shots given in 2021 which determine which studies the person is eligible for
-            num_shots_2021 = sum(1 for vax_date in [vd1, vd2] if vax_date.year == 2021 and vax_date.month >=start_month)
+            num_shots_2021 = sum(1 for vax_date in [vd1, vd2, vd3] if vax_date.year == 2021 and vax_date.month >=start_month)
             
             # Enrollment condition must NEVER look forward in time to determine enrollment eligibility! 
             # So we have an enroll on got first shot in 2021 to tally shot, then record death 1 year from enroll
@@ -165,31 +175,31 @@ def track_vaccine_data(filename, start_month):
             
             if vd1.year==2021:
                 df.loc[(1, yob, sex, vd1.month,mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
+                if died_within_year(dod,vd1):
+                     df.loc[(1, yob, sex, vd1.month, mfg1, mfg2, mfg3), NUM_DIED] += 1
              
             # STUDY #2: got shot #2 in 2021 where second shot on or after start_month. Enroll on second shot date. 
             # Death counted for 1 year from enroll. Record mfg of all 3 vax.
             if vd2.year==2021:
-                df.loc[(2, yob, sex, vd2.month, mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
+                df.loc[(2, yob, sex, vd2.month, mfg1, mfg2, mfg3), NUM_ENROLLED] += 1
+                if died_within_year(dod,vd2):
+                     df.loc[(2, yob, sex, vd2.month, mfg1, mfg2, mfg3), NUM_DIED] += 1
             
-            # Study #3: got no shots in 2021 and alive on Jan 1, 2022. Death counted for 1 year from enroll.
-            # Show mfg of all 3 shots (usually UUU)
+            # STUDY #3: got shot #2 in 2021 where second shot on or after start_month. Enroll on second shot date. 
+            # Death counted for 1 year from enroll. Record mfg of all 3 vax.
+            if vd3.year==2021:
+                df.loc[(3, yob, sex, vd3.month, mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
+                if died_within_year(dod,vd3):
+                     df.loc[(3, yob, sex, vd3.month, mfg1, mfg2, mfg3), NUM_DIED] += 1            
+            # Study #4: got no shots in 2021 and alive on Jan 1, 2022. Death counted for 1 year from enroll.
+            # Show mfg of all 3 shots (usually UUU) since might have gotten all shots in 2022.
             if num_shots_2021 ==0:
-                df.loc[(3, yob, sex, 0 , mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
-           
+                df.loc[(4, yob, sex, 0 , mfg1, mfg2, mfg3), NUM_ENROLLED] += 1 
+                if died_within_year(dod, JAN_2022):
+                     df.loc[(4, yob, sex, 0, mfg1, mfg2, mfg3), NUM_DIED] += 1           
           
 
-            # if the person didn't die, we're done.
-            if not dod.year:
-                continue
-            
-            # now tally to the death counter if died within 1 year of dose
-            date_of_vax=vd2 if vd2.year else vd1
-            # Calculate the difference in days
-            days_diff = (dod - date_of_vax).days
-
-            # Check if the death occurred within 12 months (365 days)
-            if 0 <= days_diff <= 365:
-                df.loc[(yob, sex, mfg1, mfg2, latest_month), NUM_DIED] += 1
+ 
     
     # remove rows with enrollment=0 to make things more managable
     df = df[df[NUM_ENROLLED] != 0]
