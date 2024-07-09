@@ -18,13 +18,24 @@ time_series_moderna=$(datadir)/ts_moderna_d2_month_dose_week_decade.txt
 time_series_files=$(datadir)/ts_*
 full_matrix=$(datadir)/full_matrix.csv
 
-# complete when we have all the time series analyses and MR stats files
-all: $(time_series_pfizer) $(time_series_moderna) $(pfizer_stats) $(moderna_stats) $(full_matrix)
+# complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
+# note that the analysis supercedes the 
+all: time-series death-rates analysis
 	@echo "All done!"
 
-# computes 4 different studies: shot1 given in 2021, shot2 given in 2021, shot3 given in 2021, unvaxxed in 2021
+# analysis computes 4 different studies: shot1 given in 2021, shot2 given in 2021, shot3 given in 2021, unvaxxed in 2021
 # This is the ultimate indicator of what is going on. Four states for each dose.
 # Takes 46 minutes to run.
+
+analysis: $(full_matrix)
+
+# time series will convert the records file to buckets.py and then create the time series
+# files for Pfizer and Moderna that can be analyzed in the spreadsheets
+
+time-series:  $(time_series_pfizer) $(time_series_moderna) 
+
+death-rates: $(pfizer_stats) $(moderna_stats)
+
 $(full_matrix): $(source_file)
 	@echo "Computing the full matrix analysis buckets from original source file"
 	@python full_matrix.py $(source_file) >$(full_matrix)
