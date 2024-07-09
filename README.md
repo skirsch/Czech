@@ -143,8 +143,14 @@ To generate all the MR stats and time series files:
 cd code
 make
 ``` 
+The build time for all files is about 2 hours.
 
-The build time for all files is about 1 hour and 20 minutes.
+
+To just make the final analysis (45 minutes):
+```
+make analysis
+```
+
 
 To start over from scratch:
 ```
