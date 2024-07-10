@@ -59,11 +59,11 @@ FEMALE="F"
 UNKNOWN="X"
 
 # vax type and value to record in the MFG column
-PFIZER="PF"
-MODERNA="MO"
-ASTRA="AZ"
-JANN="JA"
-NOVAVAX="NOVA"
+PFIZER="PF"     # 5586979 got shot 1
+MODERNA="MO"    #  526453 got shot 1
+ASTRA="AZ"      #  447450 got shot 1
+JANN="JA"       #  412314 got shot 1
+NOVAVAX="NOVA"  #    5425 got shot 1 but only in 2022 so doesn't appear in Study 2. 14 died. MR of just 258, but there wasn't a full year to die.
 
 OTHER="OTHER"
 UNVAX="NONE"
