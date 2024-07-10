@@ -58,18 +58,22 @@ MALE="M"
 FEMALE="F"
 UNKNOWN="X"
 
-# vax type
-PFIZER="P"
-MODERNA="M"
-OTHER="O"
-UNVAX="U"
+# vax type and value to record in the MFG column
+PFIZER="PF"
+MODERNA="MO"
+ASTRA="AZ"
+JANN="JA"
+NOVAVAX="NOVA"
+
+OTHER="OTHER"
+UNVAX="NONE"
 
 # Define the range of allowable values
 R_STUDY = list(range(1,5))   # four studies (1 shot, 2 shot, 3 shot, unvaxxed)
 R_YOB = range(1920, 2021)  # 1920 to 2020 inclusive
 R_SEX = [MALE, FEMALE, UNKNOWN]
 R_MONTH = list(range(0, 13))  # month in 2021 enrolled in the study. 0 means unvaxxed enrolled in 2022.
-R_MFG = [PFIZER, MODERNA, OTHER, UNVAX]
+R_MFG = [PFIZER, MODERNA, ASTRA, JANN, NOVAVAX, OTHER, UNVAX]
 
 
 Date=namedtuple('Date', ['month', 'day', 'year']) 
@@ -86,7 +90,8 @@ def parse_date(v_date):
 JAN_2022=parse_date("2022-01-01")    
         
 MFG_DICT = {'CO01': PFIZER, 'CO02': MODERNA, 'CO08':PFIZER, 'CO09': PFIZER, 'CO15': MODERNA, 'CO16': PFIZER, 
-            'CO19': MODERNA, 'CO20': PFIZER, 'CO21':PFIZER, 'CO23':PFIZER }
+            'CO19': MODERNA, 'CO20': PFIZER, 'CO21':PFIZER, 'CO23':PFIZER,
+             'CO03': ASTRA, 'CO04':JANN, 'CO07': NOVAVAX }
 def parse_mfg(mfg):
     if not mfg:
         return UNVAX
