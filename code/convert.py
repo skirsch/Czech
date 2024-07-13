@@ -48,7 +48,7 @@ def process_vaccine_data(input_file):
       # write an ouput record to register the person to be unvaccinated as of 1-1-2020 if they didn't die before 1-1-2020
       if not death_date or death_date_obj > DEC_2019:
           # Basically, everyone alive got shot #0 (of brand "Saline") at start of the trial of 2020!
-          output_row = [mrn, UVAX, 0, "1/1/2020", death_date, UVAX, f"1/1/{birth_year}"]
+          output_row = [mrn, 0, 0, "1/1/2020", death_date, UVAX, f"1/1/{birth_year}"]
           out_writer.writerow(output_row)
       # Process vaccine data for each dose
       for dose_num in range(1, 8):
@@ -56,7 +56,7 @@ def process_vaccine_data(input_file):
         #  loop if vax_date is empty (no more doses)
         if not vax_date:
           continue    # see if any other doses since a dose can be missing so contine and don't break
-        vax_code = int(row[5 + (dose_num - 1) * 4][2:])
+        vax_code = int(row[5 + (dose_num - 1) * 4][2:]) # must be an integer
         vax_name = row[6 + (dose_num - 1) * 4]
 
         # Convert date format for vax_date and death_date (if not empty)
