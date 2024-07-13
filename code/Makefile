@@ -17,11 +17,23 @@ time_series_pfizer=$(datadir)/ts_pfizer_d2_month_dose_week_decade.txt
 time_series_moderna=$(datadir)/ts_moderna_d2_month_dose_week_decade.txt 
 time_series_files=$(datadir)/ts_*
 full_matrix=$(datadir)/full_matrix.csv
+time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt 
 
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
 # note that the analysis supercedes the 
-all: time-series death-rates analysis
+all: time-series death-rates analysis time-series-all
 	@echo "All done!"
+
+
+# this target makes a time series from the FULL dataset, rather than from a restricted dataset 
+# that just looks at those given dose 2 in 2021. So this is the traditional time series showing
+# all the transitions.
+time-series-all: $(time_series_all_files)
+
+$(time_series_all_files): $(record_file)
+	@echo "Time series analysis for all records"
+	@python buckets.py $(record_file) $(datadir)/ts_all
+
 
 # analysis computes 4 different studies: shot1 given in 2021, shot2 given in 2021, shot3 given in 2021, unvaxxed in 2021
 # This is the ultimate indicator of what is going on. Four states for each dose.
@@ -55,6 +67,7 @@ $(source_file): $(compressed_source_file)
 	@xz  -dk $(compressed_source_file) # decompress and keep original file
 
 # convert CR format (1 record per person) to buckets format (1 record per shot)
+# including the uvaccinated records!
 $(record_file):	$(source_file)
 	@echo "Converting to buckets.py format..."
 	@python convert.py $(source_file) >$(record_file)  

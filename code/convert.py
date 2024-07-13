@@ -7,6 +7,9 @@ from datetime import datetime
 import argparse
 import sys
 
+UVAX="U"
+DEC_2019=datetime.strptime("2019-12-31", '%Y-%m-%d')
+
 def process_vaccine_data(input_file):
   """
   Reads the large CSV file in Czech Republic format and 
@@ -37,12 +40,16 @@ def process_vaccine_data(input_file):
 
       if death_date:   # if death date present, convert the format just once, not in the loop
           try:
-            death_date_obj = datetime.strptime(death_date, '%Y-%m-%d')
-            death_date = death_date_obj.strftime('%m/%d/%Y')
+            death_date_obj = datetime.strptime(death_date, '%Y-%m-%d')   # we can subtract date objects
+            death_date = death_date_obj.strftime('%m/%d/%Y')  # convert back to a printable date
           except ValueError:
             print(f"Error: Invalid death_date format {death_date} for row {row_num}")
             death_date = ""
-      
+      # write an ouput record to register the person to be unvaccinated as of 1-1-2020 if they didn't die before 1-1-2020
+      if not death_date or death_date_obj > DEC_2019:
+          # Basically, everyone alive got shot #0 (of brand "Saline") at start of the trial of 2020!
+          output_row = [mrn, UVAX, 0, "1/1/2020", death_date, UVAX, f"1/1/{birth_year}"]
+          out_writer.writerow(output_row)
       # Process vaccine data for each dose
       for dose_num in range(1, 8):
         vax_date = row[3 + (dose_num - 1) * 4]
@@ -60,7 +67,7 @@ def process_vaccine_data(input_file):
           print(f"Error: Invalid vax_date format {vax_date} for row {row_num}")
           vax_date = ""
         
-        # Write an output row for each dose given
+        # Write an output row for each dose given 
         output_row = [mrn, vax_code, dose_num, vax_date, death_date, vax_name, f"1/1/{birth_year}"]
         out_writer.writerow(output_row)
 
