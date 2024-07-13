@@ -164,6 +164,9 @@ def make_buckets(n_vax=None):
 
     print(f'processing date range {start_date} to {end_date}...')
     # loop over the each day
+
+    still_alive=-1    # any value that will never match
+
     for offset in range((end_date - start_date).days + 1):
         # get the date we're currently working in
         cur_date = start_date + datetime.timedelta(days=offset)
@@ -177,6 +180,12 @@ def make_buckets(n_vax=None):
         if (date_key != last_date_key):
             print(f'at the end of {last_date_key}, {len(use_people)} still alive')
             last_date_key = date_key
+
+            # If people aren't dying anymore, then stop
+            sa=len(use_people)
+            if sa==still_alive:
+                break     
+            still_alive=sa
 
         # loop over the current people who are alive
         for p in list(use_people):
