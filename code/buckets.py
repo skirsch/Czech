@@ -153,7 +153,7 @@ def make_buckets(n_vax=None):
     # one would die so that I could make sure I was counting right
     # I also stop 60 days after the last date in the records, that
     # ensures that I close out a month properly.  Lazy, I know, but it works.
-    start_date = datetime.date(2021, 1, 1)
+    start_date = datetime.date(2020, 1, 1)
     end_date = max(all_dates) + datetime.timedelta(days=60)
 
     # we'll start counting at the begnning of the earliest month in the data
