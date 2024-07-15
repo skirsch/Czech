@@ -295,7 +295,7 @@ def all_ages(key):
     (date_key, dose, batch, week, age) = key
     return (date_key, dose, week)
 
-
+# so this puts ages 60-69 into the 60 bucket if you stratify with years =10
 def stratify(weeks, years):
     # groups bins by weeks and ages by years
     _weeks = weeks
