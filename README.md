@@ -1,5 +1,5 @@
 ### NOTE
-For the latest info, see my Substack article. 
+For the latest info, see my [Substack article](https://kirschsubstack.com/p/breaking-record-level-data-from-czech). 
 
 I haven't had much time to update the numbers here based on the latest analysis. 
 
