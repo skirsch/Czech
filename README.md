@@ -9,7 +9,7 @@ However, other than the numbers in the tables, the info here should be basically
 For the first time in human history, the record level data of people who got vaccines in a country have been officially released. Over 10M records from the Czech Republic were obtained legally under FOIA and posted to the Internet four months ago. Each record has year of birth, date of death, date/brand of each COVID vaccine. Because the brands were distributed in the Czech Republic without any systemic bias, we can comparing the ACM over 1 year from the date the shots were given with different brands, we find large increases in all-cause mortality compared to the safest vaccine (Pfizer) where we had sufficient data. Even in the most optimistic scenario where Pfizer is 100% safe and does not increase all-cause mortality, the Moderna, AstraZeneca, and Jannsen vaccines were too deadly to be used. The Novavax vaccine appears to neglibly impact ACM but there was too little data available to be certain since death data after 2022 was not disclosed. Also, the dose of mRNA in the Moderna vaccine compared to Pfizer was from 1.7 to 3.3X higher than Pfizer, so there is biological plausibilty. Also, the Fraiman study showed Moderna had significantly higher adverse events than Pfizer. All 5 Bradford Hill causality criteria are satisfied for Moderna. There is no other explanation for the observed data that we are aware of.   Vaccines are supposed to reduce ACM, not increase it. The medical community should be demanding equal levels of data transparency from governments worldwide. This analysis clearly demonstrates that withholding public health data from the public does not improve clinical outcomes.
 
 ### Abstract
-Using gold-standard record level data supplied by the Czech Republic on over 10M citizens who randomly were given either the Pfizer or Moderna vaccine, we can compute a 1 year mortality risk ratio (MRR) between the two vaccines where the 1 year starts at the time of receipt of the shot.
+Using gold-standard record level data supplied by the Czech Republic on over 10M citizens who based on availability at the time and place they went to were given either the Pfizer or Moderna vaccine, we can compute a 1 year mortality risk ratio (MRR) between the two vaccines where the 1 year starts at the time of receipt of the shot.
 
 We found that for virtually all ages below 92 years old, the Moderna shots were much more dangerous than the Pfizer shots. The younger the person, the higher the mortality increase. For those under 60 years old, the relative mortality was 50% higher.
 
@@ -32,7 +32,7 @@ We need to end the liability waiver of vaccine manufacturers, we need to populat
 * Dose 2 was given starting in 2021 with the greatest number of doses given mid-year
 * You had to wait 8 months after dose 2 before getting a booster.
 * Pfizer rolled out first in Jan 2021. Moderna rolled out in Feb 2021.
-* Vaccines were randomly distributed for those wishing to get vaxxed.
+* Vaccines were non systematically distributed for those wishing to get vaxxed.
 * People were not allowed to select which vaccines they got.
 * These are the stats for Dose 2 vaccines given in 2021 along with the total number of deaths until the end of 2022. Note that we compute the deaths later for each age group within 1 year from the shot which is the accurate way to do the mortality rate calculation. So these are just baseline stats. CMR is the crude mortality rate (deaths/doses). If the vaccines are all safe, the CMR numbers should be very similar. CMR deaths per 100,000 persons. Time to die is not factored into this crude estimate, but even without doing that, you can see a HUGE problem.
 
@@ -173,7 +173,7 @@ In the [analysis directory](analysis) are spreadsheets where you can dump the da
 The spreadsheets are pre-populated with the data, so you can either re-paste the data or verify the numbers there are what you generated.
 
 ### The methodology
-The vaccination program in CR randomly assigned vaccines to people.
+The vaccination program in CR non-systematically assigned vaccines to people.
 
 So it was a perfect real world clinical trial.
 
