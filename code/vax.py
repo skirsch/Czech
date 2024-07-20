@@ -1,15 +1,23 @@
 '''
 Analyze the CZ records file which is vaccine record level data.
 
-to do: add count of deaths since last shot if 12 monts. and do for the same for 6 month and 3 months.
+Creates two worksheets: 
+
+1. death by month which uses month of death (mod) as grouping criteria
+2. within 365 days of shot which doesn't use mod as grouping and will count deaths within 365 days of shot
+
+
 '''
 
 import pandas as pd
 import csv # for the quoting option on output
 from datetime import timedelta
 
+# time window for deaths in summary stats
+# so we can compare deaths for 90, 180, 270, etc. days from last shot
+thresholds=[90,180, 270, 365, 455]
 
-def read_csv(file_path="data/CR_records.csv"):
+def read_csv(file_path="data/CR_records_10K.csv"):
     """
     Processes the CSV file, calculates summary statistics, and returns both dataframes.
 
@@ -35,14 +43,30 @@ def read_csv(file_path="data/CR_records.csv"):
 
     print("adding death columns...")
     # add shot death stats from last date of shot BEFORE we do the grouping!
+    # these are all pure date columns (not month year)
     shot_date_cols = ['date_1_', 'date_2_', 'date_3_', 'date_4_']
-    dod_col='dod_'
+    dod_col='dod_'  
    
+    # add some more death columns to our source dataframe
     add_death_cols(df, dod_col, shot_date_cols)
 
     # return a df suitable for analysis (grouping)
-    return df
 
+    # Convert datum to datetime for grouping
+    # df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d')
+
+    # Create a new column for the month-year for EACH date to keep things manageable for grouping
+    # df['month_year'] = df['date'].dt.strftime('%m-%Y')
+    for old, new in [('dod_', 'mod'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
+        df[new] = df[old].dt.strftime('%m-%Y')  
+
+    # Create age column with 5 year age ranges
+    df['age'] = ((2024 - df['yob']) // 5) * 5
+    df['age'] = df['age'].astype(str) + ' - ' + (df['age'] + 4).astype(str)
+
+    # ok so this is our final source dataframe with lots of info.
+    # so we can do various groupby analyses on it.
+    return df
 
 def add_death_cols(df, dod_col, shot_date_cols):
   """Counts deaths within specific timeframes after shot dates.
@@ -57,51 +81,49 @@ def add_death_cols(df, dod_col, shot_date_cols):
     A pandas DataFrame with counts for different timeframes.
   """
 
-  # Create a helper column for max shot date
+  # Create a helper column for max shot date so can easily compute the days since death
   df['max_shot_date'] = df[shot_date_cols].max(axis=1)
 
-  # days until death
-  df['dud'] = (df[dod_col] - df['max_shot_date']).dt.days.round(0)
+  # days until death column (based on the most recent vax date)
+  df['days_until_death'] = (df[dod_col] - df['max_shot_date']).dt.days.round(0)
 
-  # Create boolean columns for different timeframes
-  # useless since count already counts this
-  # df['d_12m'] = df['days_since_shot'] <= 365
+  # now create boolean columns for each record indicating where the death was (90 days, 180 days, etc.)
   
+  for threshold in thresholds:
+    df[f'death_within_{threshold}d'] = df['days_until_death'] <= threshold
 
-    # Group by specified columns and sum the boolean columns
+
+  # Group by specified columns and sum the boolean columns
   # result = df.groupby(group_cols)[['death_within_3m', 'death_within_6m', 'death_within_9m', 'death_within_12m']].sum().reset_index()
   return df
 
-def analyze(df):
+def analyze(df, group_cols):
     
-    # Convert datum to datetime for grouping
-    # df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d')
-
-    # Create a new column for the month-year for each date to keep things manageable for grouping
-    # df['month_year'] = df['date'].dt.strftime('%m-%Y')
-    for old, new in [('dod_', 'dod'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
-        df[new] = df[old].dt.strftime('%m-%Y')  
-
-    # Create age column with 5 year age ranges
-    df['age'] = ((2024 - df['yob']) // 5) * 5
-    df['age'] = df['age'].astype(str) + ' - ' + (df['age'] + 4).astype(str)
-
     print("grouping...")
     # Define the grouping columns
-    group_cols = ['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'type_1', 'type_2', 'type_3', 'type_4', 'dod'] 
 
-    # Calculate summary statistics (# shots, # comorbidities)
-    # include empty values as value (dropna=False)
-    summary_df = df.groupby(group_cols, dropna=False).agg(
-        count=('yob', 'size'),  # of people who got that combination 
-        avg_days_until_death = ('dud', 'mean'),
+    if 'mod' in group_cols:
+      # Calculate summary statistics (# shots, # comorbidities)
+      # include empty values as value (dropna=False)
+      summary_df = df.groupby(group_cols, dropna=False).agg(
+        shots=('yob', 'size')  # of people who got that combination 
+
+        # this wasn't useful since lines are so fine grained
+        # avg_days_until_death = ('dud', 'mean'),
         # this is total deaths for people with that combo to end of the measurement period (end of 2022)
         # but it's redundant since dod is now one of the index parameters
         # died_b4_2023=('dod', 'count')   # number of deaths for people with that combination 
-    ).reset_index()
+      ).reset_index()
+    else:
+       # OK, month of death isn't in group by, so this is our chance to create columns for deaths 
+       # count number of people who died within N months of the most recent shot in this row
 
-    # count number of people who died within N months of the most recent shot in this row
-    
+      # Group by specified columns and calculate counts and total
+      summary_df = df.groupby(group_cols).agg(
+        shots=('yob', 'size'),  # this is # shots given (size of the group identified by the index)
+        # now add additional columns 
+        **{f'deaths_within_{threshold}d': ('death_within_{threshold}d', 'sum') for threshold in thresholds}
+        ).reset_index()
 
     # Convert com to integer is no longer needed since count instead of sum
     # summary_df['com'] = summary_df['com'].astype(int)
@@ -127,7 +149,7 @@ def write_df_to_csv(df1, filename):
   """
   # don't muck with the original
   df=df1.copy()   # make a copy so don't muck with the original
-  # add a space to make sure not interpreted as a date
+  # add a space to make sure not interpreted as a date by excel
   df['age']=df['age'].apply(lambda x: f' {x}')   
   
   print("writing file to disk...", filename)
@@ -135,7 +157,18 @@ def write_df_to_csv(df1, filename):
   # quoting=csv.QUOTE_NONNUMERIC will quote dates which is a problem
   df.to_csv(filename, index=False, quoting=csv.QUOTE_NONE)
 
-# create the dataframes
+# create the dataframe
+group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'type_1', 'type_2', 'type_3', 'type_4', 'mod'],  # add month of date
+              ['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'type_1', 'type_2', 'type_3', 'type_4']) # no month of date in group
 df=read_csv() 
-df2=analyze(df)
-write_df_to_csv(df2, 'data/vax.csv')
+
+# analyze two ways: one allows you to filter on death month, 
+# the other computes leaves the death month out of the group and sums the death count for 3,6,9,12 months after the shot () plus avg days until death
+suffix=1
+
+# write out two .csv files: one for month of deeath in the index (for granualar analysis)
+# and one where we count the deaths in first 90, 180, etc. days since the shot given to a person in the group
+for cols in group_cols:
+  df2=analyze(df, cols)
+  write_df_to_csv(df2, 'data/vax'+str(suffix)+'.csv')
+  suffix+=1
