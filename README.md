@@ -6,7 +6,7 @@ I haven't had much time to update the numbers here based on the latest analysis.
 However, other than the numbers in the tables, the info here should be basically correct.
 
 ### Short abstract
-For the first time in human history, the record level data of people who got vaccines in a country have been officially released. Over 10M records from the Czech Republic were obtained legally under FOIA and posted to the Internet four months ago. Each record has year of birth, date of death, date/brand of each COVID vaccine. Because the brands were distributed in the Czech Republic without any systemic bias, we can comparing the ACM over 1 year from the date the shots were given with different brands, we find large increases in all-cause mortality compared to the safest vaccine (Pfizer) where we had sufficient data. Even in the most optimistic scenario where Pfizer is 100% safe and does not increase all-cause mortality, the Moderna, AstraZeneca, and Jannsen vaccines were too deadly to be used. The Novavax vaccine appears to neglibly impact ACM but there was too little data available to be certain since death data after 2022 was not disclosed. Also, the dose of mRNA in the Moderna vaccine compared to Pfizer was from 1.7 to 3.3X higher than Pfizer, so there is biological plausibilty. Also, the Fraiman study showed Moderna had significantly higher adverse events than Pfizer. All 5 Bradford Hill causality criteria are satisfied for Moderna. There is no other explanation for the observed data that we are aware of.   Vaccines are supposed to reduce ACM, not increase it. The medical community should be demanding equal levels of data transparency from governments worldwide. This analysis clearly demonstrates that withholding public health data from the public does not improve clinical outcomes.
+For the first time in human history, the record level data of people who got vaccines in a country have been officially released. Over 10M records from the Czech Republic were obtained legally under FOIA and posted to the Internet four months ago. Each record has year of birth, date of death, date/brand of each COVID vaccine. Because the brands were distributed in the Czech Republic without any systematic bias (cluster randomized), we can compare the ACM over 1 year from the date the shots were given with different brands, we find large increases in all-cause mortality compared to the safest vaccine (Pfizer) where we had sufficient data. Even in the most optimistic scenario where Pfizer is 100% safe and does not increase all-cause mortality, the Moderna, AstraZeneca, and Jannsen vaccines were too deadly to be used. The Novavax vaccine appears to neglibly impact ACM but there was too little data available to be certain since death data after 2022 was not disclosed. Also, the dose of mRNA in the Moderna vaccine compared to Pfizer was from 1.7 to 3.3X higher than Pfizer, so there is biological plausibilty. Also, the Fraiman study showed Moderna had significantly higher adverse events than Pfizer. All 5 Bradford Hill causality criteria are satisfied for Moderna. There is no other explanation for the observed data that we are aware of.   Vaccines are supposed to reduce ACM, not increase it. The medical community should be demanding equal levels of data transparency from governments worldwide. This analysis clearly demonstrates that withholding public health data from the public does not improve clinical outcomes.
 
 ### Abstract
 Using gold-standard record level data supplied by the Czech Republic on over 10M citizens who based on availability at the time and place they went to were given either the Pfizer or Moderna vaccine, we can compute a 1 year mortality risk ratio (MRR) between the two vaccines where the 1 year starts at the time of receipt of the shot.
@@ -23,9 +23,24 @@ Also, the people who promoted these vaccines should admit that they were incapab
 
 We need to end the liability waiver of vaccine manufacturers, we need to populate the outside committees of the FDA and CDC with only people who publicly spoke out against these vaccines, and we need to immediately stop mandating all vaccines worldwide because a mistake like this one calls all previous vaccine safety studies into question. We need to start making data on other vaccines public, just like the Czech Republic did for the COVID vaccine data. Hiding public health data from the public never improves health outcomes.
 
+### The easiest way to see that Moderna kills more people, regardless of the month of vaccination or death
+Look at [this heatmap](https://sars2.net/czech.html#Triangle_plot_of_Moderna_Pfizer_ratio). This tells you in one chart everything you need to know. Ideally would be to see these heatmaps for each 5 year age band.
+
+Second best, but easier to understand instantly is this [chart of the ASMR for each vaccine vs. time](https://sars2.net/czech.html#ASMR_by_month_and_vaccine_type). In times of no COVID, the vaccines should have identical mortality. They don't.
+
+### The best counter argument
+They tried to debunk this claiming Moderna was distributed to people with higher comorbidities (which is actually true I was amazed to see), but even when the comorbidities were 2X the other way, more people died from Moderna. 
+
+So uneven cluster randomization might play a role in the mortality rate, but it appears to be a minor factor. 
+
+ See the `comorbidity.py` file.
+
+ See my Substack for more info.
+
 ### The specifics
-* We legally obtained over 10M records people in Czech Republic via FOIA.
+* We legally obtained over 10M records people in Czech Republic via FOIA. The data was originally [obtained by a Czech citizen (Stanislav Veselý) under a FOIA request](https://www.skirsch.com/covid/CzechFOIA.pdf). Tomáš Furst posted it to github 4 months ago on March 29, 2024 but he didn’t tell anyone and nobody noticed.
 * The records preserved privacy by using birth year instead of birth date.
+* The records have been [verified to be authentic](https://sars2.net/czech.html#Number_of_vaccine_doses_by_type_in_record_level_data_compared_to_MoH_data)
 * There was one record for each person
 * Each record had YOB, DOD (if dead), and, for each COVID vaccination, the vax date,vax batch, vax name, vax code number for up to 7 vaccinations.
 * Deaths were not included for 2023 and beyond, limiting the scope of the analysis
