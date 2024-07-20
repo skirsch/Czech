@@ -37,6 +37,7 @@ def read_csv(file_path="data/CR_records.csv"):
     # add shot death stats from last date of shot BEFORE we do the grouping!
     shot_date_cols = ['date_1_', 'date_2_', 'date_3_', 'date_4_']
     dod_col='dod_'
+   
     add_death_cols(df, dod_col, shot_date_cols)
 
     # return a df suitable for analysis (grouping)
@@ -59,18 +60,15 @@ def add_death_cols(df, dod_col, shot_date_cols):
   # Create a helper column for max shot date
   df['max_shot_date'] = df[shot_date_cols].max(axis=1)
 
+  # days until death
+  df['dud'] = (df[dod_col] - df['max_shot_date']).dt.days
+
   # Create boolean columns for different timeframes
-  df['d_3m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=90)
-  df['d_6m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=180)
-  df['d_9m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=270)
-  df['d_12m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=365)
-  df['d_15m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=455)
+  # useless since count already counts this
+  # df['d_12m'] = df['days_since_shot'] <= 365
+  
 
-  # create numeric column: days from last shot until death. We'll average this when we group
-  df['dud'] = (df[dod_col] - df['max_shot_date']) 
-
-  print("df after adding columns", df)
-  # Group by specified columns and sum the boolean columns
+    # Group by specified columns and sum the boolean columns
   # result = df.groupby(group_cols)[['death_within_3m', 'death_within_6m', 'death_within_9m', 'death_within_12m']].sum().reset_index()
   return df
 
@@ -96,11 +94,6 @@ def analyze(df):
     # include empty values as value (dropna=False)
     summary_df = df.groupby(group_cols, dropna=False).agg(
         count=('yob', 'size'),  # of people who got that combination 
-        died_3m = ('d_3m', 'sum'),   
-        died_6m  = ('d_6m', 'sum'), 
-        died_9m = ('d_9m', 'sum'),   
-        died_12m = ('d_12m', 'sum'),  
-        died_15m = ('d_15m', 'sum'),  
         avg_days_until_death = ('dud', 'mean'),
         # this is total deaths for people with that combo to end of the measurement period (end of 2022)
         # but it's redundant since dod is now one of the index parameters
