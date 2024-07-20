@@ -62,6 +62,7 @@ $(time_series_moderna): $(moderna_dose2_21_file)
 	@echo "Time series analysis for moderna"
 	@python buckets.py $(moderna_dose2_21_file) $(datadir)/ts_moderna_d2
 
+# expansion step is done by calling xz directly
 $(source_file): $(compressed_source_file)
 	@echo "Expanding source data file..."
 	@xz  -dk $(compressed_source_file) # decompress and keep original file

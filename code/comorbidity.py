@@ -69,8 +69,8 @@ def analyze(df):
 
     # Calculate summary statistics (# shots, # comorbidities)
     summary_df = df.groupby(group_cols).agg(
-        shots=('date', 'count'),  # date column will always be filled
-        com=('com', 'count')   # this column will only have entry if comorbidity
+        shots=('age', 'size'),  # pick any of group_cols to get count of rows in that group
+        com=('com', 'count')   # count number of comorbidities for this grouping combo
     ).reset_index()
 
     # Convert com to integer is no longer needed since count instead of sum
