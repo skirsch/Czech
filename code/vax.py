@@ -122,7 +122,7 @@ def analyze(df, group_cols):
       summary_df = df.groupby(group_cols).agg(
         shots=('yob', 'size'),  # this is # shots given (size of the group identified by the index)
         # now add additional columns 
-        **{f'deaths_within_{threshold}d': ('death_within_{threshold}d', 'sum') for threshold in thresholds}
+        **{f'deaths_within_{threshold}d': (f'death_within_{threshold}d', 'sum') for threshold in thresholds}
         ).reset_index()
 
     # Convert com to integer is no longer needed since count instead of sum
