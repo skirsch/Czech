@@ -89,8 +89,8 @@ def add_death_cols(df, dod_col, shot_date_cols):
 
   # First, if you are NOT vaccinated, then let's pretend your vax date is Jan 1, 2020
   # and we'll set the type to UNVAXXED
-  df[date_1_] = df[date_1_].fillna(pd.Timestamp('2020-01-01'))
-  df[brand_1] = df[brand_1].fillna('UNVAXXED')
+  df['date_1_'] = df['date_1_'].fillna(pd.Timestamp('2020-01-01'))
+  df['brand_1'] = df['brand_1'].fillna('UNVAXXED')
 
   df['days_until_death'] = (df[dod_col] - df['date_1_']).dt.days.round(0)
 
@@ -167,6 +167,10 @@ def write_df_to_csv(df1, filename):
 # create the dataframe
 group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'brand_1', 'brand_2', 'brand_3', 'brand_4', 'month_of_death'],  # add month of date
               ['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'brand_1', 'brand_2', 'brand_3', 'brand_4']) # no month of date in group
+
+
+
+# Start executing here
 df=read_csv() 
 
 # analyze two ways: one allows you to filter on death month, 
