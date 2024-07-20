@@ -61,7 +61,7 @@ def add_death_cols(df, dod_col, shot_date_cols):
   df['max_shot_date'] = df[shot_date_cols].max(axis=1)
 
   # days until death
-  df['dud'] = (df[dod_col] - df['max_shot_date']).dt.days
+  df['dud'] = (df[dod_col] - df['max_shot_date']).dt.days.round(0)
 
   # Create boolean columns for different timeframes
   # useless since count already counts this
@@ -128,7 +128,7 @@ def write_df_to_csv(df1, filename):
   # don't muck with the original
   df=df1.copy()   # make a copy so don't muck with the original
   # add a space to make sure not interpreted as a date
-  # df['age']=df['age'].apply(lambda x: f' {x}')   
+  df['age']=df['age'].apply(lambda x: f' {x}')   
   
   print("writing file to disk...", filename)
   # make sure strings have quotes around them to ensure excel doesn't interpret 12-15 as a date
