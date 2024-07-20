@@ -6,6 +6,8 @@ to do: add count of deaths since last shot if 12 monts. and do for the same for 
 
 import pandas as pd
 import csv # for the quoting option on output
+from datetime import timedelta
+
 
 def read_csv(file_path="data/CR_records.csv"):
     """
@@ -29,6 +31,34 @@ def read_csv(file_path="data/CR_records.csv"):
     df.columns = new_cols
     return df
 
+
+def count_deaths_by_timeframe(df, group_cols, dod_col, shot_date_cols):
+  """Counts deaths within specific timeframes after shot dates.
+
+  Args:
+    df: The pandas DataFrame.
+    group_cols: A list of columns to group by.
+    dod_col: The name of the death of death column.
+    shot_date_cols: A list of shot date columns.
+
+  Returns:
+    A pandas DataFrame with counts for different timeframes.
+  """
+
+  # Create a helper column for max shot date
+  df['max_shot_date'] = df[shot_date_cols].max(axis=1)
+
+  # Create boolean columns for different timeframes
+  df['death_within_3m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=90)
+  df['death_within_6m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=180)
+  df['death_within_9m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=270)
+  df['death_within_12m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=365)
+
+  # Group by specified columns and sum the boolean columns
+  result = df.groupby(group_cols)[['death_within_3m', 'death_within_6m', 'death_within_9m', 'death_within_12m']].sum().reset_index()
+
+  return result
+
 def analyze(df):
     print("analyzing...")
     # Convert datum to datetime for grouping
@@ -50,10 +80,14 @@ def analyze(df):
     # Calculate summary statistics (# shots, # comorbidities)
     # include empty values as value (dropna=False)
     summary_df = df.groupby(group_cols, dropna=False).agg(
-        shots=('yob', 'size'),  # of people who got that combination 
+        count=('yob', 'size'),  # of people who got that combination 
+
         # we do NOT want to count total deaths to end of 2022; we use dod as a index parameter for more granularity
         # deaths=('dod', 'count')   # number of deaths for people with that combination 
     ).reset_index()
+
+    # count number of people who died within N months of the most recent shot in this row
+
 
     # Convert com to integer is no longer needed since count instead of sum
     # summary_df['com'] = summary_df['com'].astype(int)
@@ -66,6 +100,7 @@ def analyze(df):
     # summary_df['ratio'] = summary_df['com'] / summary_df['shots']
     # need to truncate because excel will make a long fraction into a string
     # summary_df['ratio'] = summary_df['ratio'].apply(lambda x: round(x, 6))
+
     return summary_df
 
 def write_df_to_csv(df1, filename):
