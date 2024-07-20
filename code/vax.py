@@ -35,7 +35,7 @@ def read_csv(file_path="data/CR_records.csv"):
 
     print("adding death columns...")
     # add shot death stats from last date of shot BEFORE we do the grouping!
-    shot_date_cols = ['date_1', 'date_2', 'date_3', 'date_4']
+    shot_date_cols = ['date_1_', 'date_2_', 'date_3_', 'date_4_']
     dod_col='dod_'
     add_death_cols(df, dod_col, shot_date_cols)
 
@@ -69,18 +69,19 @@ def add_death_cols(df, dod_col, shot_date_cols):
   # create numeric column: days from last shot until death. We'll average this when we group
   df['dud'] = (df[dod_col] - df['max_shot_date']) 
 
-
+  print("df after adding columns", df)
   # Group by specified columns and sum the boolean columns
   # result = df.groupby(group_cols)[['death_within_3m', 'death_within_6m', 'death_within_9m', 'death_within_12m']].sum().reset_index()
-  
+  return df
+
 def analyze(df):
-    print("analyzing...")
+    
     # Convert datum to datetime for grouping
     # df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d')
 
     # Create a new column for the month-year for each date to keep things manageable for grouping
     # df['month_year'] = df['date'].dt.strftime('%m-%Y')
-    for old, new in [('dod_', 'dod_'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
+    for old, new in [('dod_', 'dod'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
         df[new] = df[old].dt.strftime('%m-%Y')  
 
     # Create age column with 5 year age ranges
@@ -95,14 +96,15 @@ def analyze(df):
     # include empty values as value (dropna=False)
     summary_df = df.groupby(group_cols, dropna=False).agg(
         count=('yob', 'size'),  # of people who got that combination 
-        died_3m = ('d_3m', 'sum')   
-        died_6m  = ('d_6m', 'sum')  
-        died_9m('d_9m', 'sum')   
-        died_12m = ('d_12m', 'sum')  
-        died_15m = ('d_15m', 'sum')  
-        avg_days_until_death = ('dud, 'mean')
+        died_3m = ('d_3m', 'sum'),   
+        died_6m  = ('d_6m', 'sum'), 
+        died_9m = ('d_9m', 'sum'),   
+        died_12m = ('d_12m', 'sum'),  
+        died_15m = ('d_15m', 'sum'),  
+        avg_days_until_death = ('dud', 'mean'),
         # this is total deaths for people with that combo to end of the measurement period (end of 2022)
-        died_b4_2023=('dod', 'count')   # number of deaths for people with that combination 
+        # but it's redundant since dod is now one of the index parameters
+        # died_b4_2023=('dod', 'count')   # number of deaths for people with that combination 
     ).reset_index()
 
     # count number of people who died within N months of the most recent shot in this row
