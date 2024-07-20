@@ -86,7 +86,7 @@ def analyze(df):
     summary_df['ratio'] = summary_df['ratio'].apply(lambda x: round(x, 6))
     return summary_df
 
-def write_df_to_csv(df, filename):
+def write_df_to_csv(df1, filename):
   """Writes a pandas DataFrame to a CSV file.
 
   Args:
@@ -94,7 +94,11 @@ def write_df_to_csv(df, filename):
     filename: The name of the CSV file to create.
 
   """
-  df['age']=df['age'].apply(lambda x: f'"{x}"')   # make sure age is quoted
+  # don't muck with the original
+  df=df1.copy()   # make a copy so don't muck with the original
+  # add a space to make sure not interpreted as a date
+  df['age']=df['age'].apply(lambda x: f' {x}')   
+  
   print("writing file to disk...", filename)
   # make sure strings have quotes around them to ensure excel doesn't interpret 12-15 as a date
   # quoting=csv.QUOTE_NONNUMERIC will quote dates which is a problem
