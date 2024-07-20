@@ -3,8 +3,8 @@ Analyze the CZ records file which is vaccine record level data.
 
 Creates two worksheets: 
 
-1. death by month which uses month of death (mod) as grouping criteria
-2. within 365 days of shot which doesn't use mod as grouping and will count deaths within 365 days of shot
+1. death by month which uses month of death (month_of_death) as grouping criteria
+2. within 365 days of FIRST shot which doesn't use month_of_death as grouping and will count deaths within 365 days of shot
 
 
 '''
@@ -32,7 +32,7 @@ def read_csv(file_path="data/CR_records_10K.csv"):
                      'Datum_3', 'OckovaciLatka_3','Datum_4', 'OckovaciLatka_4']
     
     # the date_ columns are actual date objects
-    new_cols = ['sex', 'yob', 'dod_', 'date_1_', 'type_1', 'date_2_', 'type_2', 'date_3_', 'type_3', 'date_4_', 'type_4']
+    new_cols = ['sex', 'yob', 'dod_', 'date_1_', 'brand_1', 'date_2_', 'brand_2', 'date_3_', 'brand_3', 'date_4_', 'brand_4']
 
     # Read the CSV file into a DataFrame
     df = pd.read_csv(file_path, usecols=selected_cols, 
@@ -57,7 +57,7 @@ def read_csv(file_path="data/CR_records_10K.csv"):
 
     # Create a new column for the month-year for EACH date to keep things manageable for grouping
     # df['month_year'] = df['date'].dt.strftime('%m-%Y')
-    for old, new in [('dod_', 'mod'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
+    for old, new in [('dod_', 'month_of_death'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
         df[new] = df[old].dt.strftime('%m-%Y')  
 
     # Create age column with 5 year age ranges
@@ -82,10 +82,17 @@ def add_death_cols(df, dod_col, shot_date_cols):
   """
 
   # Create a helper column for max shot date so can easily compute the days since death
-  df['max_shot_date'] = df[shot_date_cols].max(axis=1)
+  # Don't use this... Need to do death computation relative to a SPECIFIC SHOT NUMBER 
+  # df['max_shot_date'] = df[shot_date_cols].max(axis=1)
 
-  # days until death column (based on the most recent vax date)
-  df['days_until_death'] = (df[dod_col] - df['max_shot_date']).dt.days.round(0)
+  # days until death column (based on the first shot date)
+
+  # First, if you are NOT vaccinated, then let's pretend your vax date is Jan 1, 2020
+  # and we'll set the type to UNVAXXED
+  df[date_1_] = df[date_1_].fillna(pd.Timestamp('2020-01-01'))
+  df[brand_1] = df[brand_1].fillna('UNVAXXED')
+
+  df['days_until_death'] = (df[dod_col] - df['date_1_']).dt.days.round(0)
 
   # now create boolean columns for each record indicating where the death was (90 days, 180 days, etc.)
   
@@ -102,7 +109,7 @@ def analyze(df, group_cols):
     print("grouping...")
     # Define the grouping columns
 
-    if 'mod' in group_cols:
+    if 'month_of_death' in group_cols:
       # Calculate summary statistics (# shots, # comorbidities)
       # include empty values as value (dropna=False)
       summary_df = df.groupby(group_cols, dropna=False).agg(
@@ -158,8 +165,8 @@ def write_df_to_csv(df1, filename):
   df.to_csv(filename, index=False, quoting=csv.QUOTE_NONE)
 
 # create the dataframe
-group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'type_1', 'type_2', 'type_3', 'type_4', 'mod'],  # add month of date
-              ['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'type_1', 'type_2', 'type_3', 'type_4']) # no month of date in group
+group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'brand_1', 'brand_2', 'brand_3', 'brand_4', 'month_of_death'],  # add month of date
+              ['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'brand_1', 'brand_2', 'brand_3', 'brand_4']) # no month of date in group
 df=read_csv() 
 
 # analyze two ways: one allows you to filter on death month, 
