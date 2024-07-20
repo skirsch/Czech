@@ -22,17 +22,28 @@ def read_csv(file_path="data/CR_records.csv"):
     print("reading file...")
     selected_cols = ['Pohlavikod', 'Rok_narozeni', 'DatumUmrti', 'Datum_1', 'OckovaciLatka_1', 'Datum_2', 'OckovaciLatka_2',
                      'Datum_3', 'OckovaciLatka_3','Datum_4', 'OckovaciLatka_4']
+    
+    # the date_ columns are actual date objects
     new_cols = ['sex', 'yob', 'dod_', 'date_1_', 'type_1', 'date_2_', 'type_2', 'date_3_', 'type_3', 'date_4_', 'type_4']
 
     # Read the CSV file into a DataFrame
     df = pd.read_csv(file_path, usecols=selected_cols, 
                      dtype={'OckovaciLatka_1':str, 'OckovaciLatka_2':str, 'OckovaciLatka_3':str, 'OckovaciLatka_4':str},
                      parse_dates=['DatumUmrti', 'Datum_1', 'Datum_2', 'Datum_3', 'Datum_4'])
+    # rename the columns
     df.columns = new_cols
+
+    print("adding death columns...")
+    # add shot death stats from last date of shot BEFORE we do the grouping!
+    shot_date_cols = ['date_1', 'date_2', 'date_3', 'date_4']
+    dod_col='dod_'
+    add_death_cols(df, dod_col, shot_date_cols)
+
+    # return a df suitable for analysis (grouping)
     return df
 
 
-def count_deaths_by_timeframe(df, group_cols, dod_col, shot_date_cols):
+def add_death_cols(df, dod_col, shot_date_cols):
   """Counts deaths within specific timeframes after shot dates.
 
   Args:
@@ -49,16 +60,19 @@ def count_deaths_by_timeframe(df, group_cols, dod_col, shot_date_cols):
   df['max_shot_date'] = df[shot_date_cols].max(axis=1)
 
   # Create boolean columns for different timeframes
-  df['death_within_3m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=90)
-  df['death_within_6m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=180)
-  df['death_within_9m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=270)
-  df['death_within_12m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=365)
+  df['d_3m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=90)
+  df['d_6m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=180)
+  df['d_9m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=270)
+  df['d_12m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=365)
+  df['d_15m'] = (df[dod_col] - df['max_shot_date']) <= pd.Timedelta(days=455)
+
+  # create numeric column: days from last shot until death. We'll average this when we group
+  df['dud'] = (df[dod_col] - df['max_shot_date']) 
+
 
   # Group by specified columns and sum the boolean columns
-  result = df.groupby(group_cols)[['death_within_3m', 'death_within_6m', 'death_within_9m', 'death_within_12m']].sum().reset_index()
-
-  return result
-
+  # result = df.groupby(group_cols)[['death_within_3m', 'death_within_6m', 'death_within_9m', 'death_within_12m']].sum().reset_index()
+  
 def analyze(df):
     print("analyzing...")
     # Convert datum to datetime for grouping
@@ -66,28 +80,33 @@ def analyze(df):
 
     # Create a new column for the month-year for each date to keep things manageable for grouping
     # df['month_year'] = df['date'].dt.strftime('%m-%Y')
-    for old, new in [('dod_', 'dod'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
+    for old, new in [('dod_', 'dod_'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
         df[new] = df[old].dt.strftime('%m-%Y')  
 
     # Create age column with 5 year age ranges
     df['age'] = ((2024 - df['yob']) // 5) * 5
     df['age'] = df['age'].astype(str) + ' - ' + (df['age'] + 4).astype(str)
 
+    print("grouping...")
     # Define the grouping columns
     group_cols = ['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'type_1', 'type_2', 'type_3', 'type_4', 'dod'] 
 
-    print("grouping...")
     # Calculate summary statistics (# shots, # comorbidities)
     # include empty values as value (dropna=False)
     summary_df = df.groupby(group_cols, dropna=False).agg(
         count=('yob', 'size'),  # of people who got that combination 
-
-        # we do NOT want to count total deaths to end of 2022; we use dod as a index parameter for more granularity
-        # deaths=('dod', 'count')   # number of deaths for people with that combination 
+        died_3m = ('d_3m', 'sum')   
+        died_6m  = ('d_6m', 'sum')  
+        died_9m('d_9m', 'sum')   
+        died_12m = ('d_12m', 'sum')  
+        died_15m = ('d_15m', 'sum')  
+        avg_days_until_death = ('dud, 'mean')
+        # this is total deaths for people with that combo to end of the measurement period (end of 2022)
+        died_b4_2023=('dod', 'count')   # number of deaths for people with that combination 
     ).reset_index()
 
     # count number of people who died within N months of the most recent shot in this row
-
+    
 
     # Convert com to integer is no longer needed since count instead of sum
     # summary_df['com'] = summary_df['com'].astype(int)
