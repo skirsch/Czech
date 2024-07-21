@@ -19,9 +19,18 @@ time_series_files=$(datadir)/ts_*
 full_matrix=$(datadir)/full_matrix.csv
 time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt 
 
+# vax1 and vax2 csv files
+vax1=$(datadir)/vax1.csv
+vax2=$(datadir)/vax2.csv
+
+# comorbidities csv downloaded from website
+com_source=$(datadir)/ockovani-profese.csv
+comorbidities=$(datadir)/comorbidities.csv
+
+
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
 # note that the analysis supercedes the 
-all: time-series death-rates analysis time-series-all
+all: time-series death-rates analysis time-series-all comorbidities vax
 	@echo "All done!"
 
 
@@ -33,6 +42,24 @@ time-series-all: $(time_series_all_files)
 $(time_series_all_files): $(record_file)
 	@echo "Time series analysis for all records"
 	@python buckets.py $(record_file) $(datadir)/ts_all
+
+
+# these are the ultimate csv files suitable for pivot table analysis
+vax: $(vax2)
+
+$(vax2): $(source_file)
+	@echo "Making the two vax csv files from the Czech source file"
+	@python vax.py
+
+
+comorbidities: $(comorbidities)
+
+$(comorbidities): $(com_source)
+	@python comorbidities.py
+
+$(com_source):
+	@echo "Downloading 3.8G file from Czech Republic"
+	@wget -O $(com_source) https://onemocneni-aktualne.mzcr.cz/api/v2/covid-19/ockovani-profese.csv 
 
 
 # analysis computes 4 different studies: shot1 given in 2021, shot2 given in 2021, shot3 given in 2021, unvaxxed in 2021
