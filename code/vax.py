@@ -115,13 +115,13 @@ def analyze(df, group_cols):
       # Calculate summary statistics (# shots, # comorbidities)
       # include empty values as value (dropna=False)
       summary_df = df.groupby(group_cols, dropna=False).agg(
-        shots=('yob', 'size')  # of people who got that combination 
+        count_of_dead_or_survived=('yob', 'size')  # of people who got that combination 
+        # CAUTION!!! If the index has a date of death filled in, count=# deaths
+        # if the index has NO date of death, then these are people who got shot who did NOT die
+        # i.e., who survived
+        # to find the total number of people who got shot that month, you must add up all the alive
+        # people and all the dead people who got shot in that month. It's tricky!
 
-        # this wasn't useful since lines are so fine grained
-        # avg_days_until_death = ('dud', 'mean'),
-        # this is total deaths for people with that combo to end of the measurement period (end of 2022)
-        # but it's redundant since dod is now one of the index parameters
-        # died_b4_2023=('dod', 'count')   # number of deaths for people with that combination 
       ).reset_index()
     else:
        # OK, month of death isn't in group by, so this is our chance to create columns for deaths 
