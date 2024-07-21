@@ -16,9 +16,10 @@ from datetime import timedelta
 
 # time window for deaths in summary stats
 # so we can compare deaths for 90, 180, 270, etc. days from FIRST shot
-thresholds=[90, 180, 270, 365, 455, 545, 635]
+thresholds=[90, 180, 270, 365, 455, 545, 635, 730]
 
-def read_csv(file_path="data/CR_records_10K.csv"):
+# test this using _10K.csv which is shorter
+def read_csv(file_path="data/CR_records.csv"):
     """
     Processes the CSV file, calculates summary statistics, and returns both dataframes.
 
