@@ -6,6 +6,7 @@ Creates two worksheets:
 1. death by month which uses month of death (month_of_death) as grouping criteria
 2. within 365 days of FIRST shot which doesn't use month_of_death as grouping and will count deaths within 365 days of shot
 
+Shot 4 is useless... too late in the year
 
 '''
 
@@ -29,22 +30,22 @@ def read_csv(file_path="data/CR_records_10K.csv"):
     """
     print("reading file...")
     selected_cols = ['Pohlavikod', 'Rok_narozeni', 'DatumUmrti', 'Datum_1', 'OckovaciLatka_1', 'Datum_2', 'OckovaciLatka_2',
-                     'Datum_3', 'OckovaciLatka_3','Datum_4', 'OckovaciLatka_4']
+                     'Datum_3', 'OckovaciLatka_3']
     
     # the date_ columns are actual date objects
-    new_cols = ['sex', 'yob', 'dod_', 'date_1_', 'brand_1', 'date_2_', 'brand_2', 'date_3_', 'brand_3', 'date_4_', 'brand_4']
+    new_cols = ['sex', 'yob', 'dod_', 'date_1_', 'brand_1', 'date_2_', 'brand_2', 'date_3_', 'brand_3']
 
     # Read the CSV file into a DataFrame
     df = pd.read_csv(file_path, usecols=selected_cols, 
-                     dtype={'OckovaciLatka_1':str, 'OckovaciLatka_2':str, 'OckovaciLatka_3':str, 'OckovaciLatka_4':str},
-                     parse_dates=['DatumUmrti', 'Datum_1', 'Datum_2', 'Datum_3', 'Datum_4'])
+                     dtype={'OckovaciLatka_1':str, 'OckovaciLatka_2':str, 'OckovaciLatka_3':str},
+                     parse_dates=['DatumUmrti', 'Datum_1', 'Datum_2', 'Datum_3'])
     # rename the columns
     df.columns = new_cols
 
     print("adding death columns...")
     # add shot death stats from last date of shot BEFORE we do the grouping!
     # these are all pure date columns (not month year)
-    shot_date_cols = ['date_1_', 'date_2_', 'date_3_', 'date_4_']
+    shot_date_cols = ['date_1_', 'date_2_', 'date_3_']
     dod_col='dod_'  
    
     # add some more death columns to our source dataframe
@@ -57,7 +58,7 @@ def read_csv(file_path="data/CR_records_10K.csv"):
 
     # Create a new column for the month-year for EACH date to keep things manageable for grouping
     # df['month_year'] = df['date'].dt.strftime('%m-%Y')
-    for old, new in [('dod_', 'month_of_death'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3'), ('date_4_', 'date_4')]:
+    for old, new in [('dod_', 'month_of_death'), ('date_1_', 'date_1'), ('date_2_', 'date_2'),('date_3_', 'date_3')]:
         df[new] = df[old].dt.strftime('%m-%Y')  
 
     # Create age column with 5 year age ranges
@@ -165,8 +166,8 @@ def write_df_to_csv(df1, filename):
   df.to_csv(filename, index=False, quoting=csv.QUOTE_NONE)
 
 # create the dataframe
-group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'brand_1', 'brand_2', 'brand_3', 'brand_4', 'month_of_death'],  # add month of date
-              ['sex', 'age', 'date_1', 'date_2', 'date_3', 'date_4', 'brand_1', 'brand_2', 'brand_3', 'brand_4']) # no month of date in group
+group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3', 'month_of_death'],  # add month of date
+              ['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3']) # no month of date in group
 
 
 
