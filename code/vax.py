@@ -106,7 +106,7 @@ def add_death_cols(df, dod_col, shot_date_cols):
   return df
 
 def analyze(df, group_cols):
-    
+    # specifying dropna is critical so we get all combos, not just people who got 3 shots
     print("grouping...")
     # Define the grouping columns
 
@@ -127,7 +127,7 @@ def analyze(df, group_cols):
        # count number of people who died within N months of the most recent shot in this row
 
       # Group by specified columns and calculate counts and total
-      summary_df = df.groupby(group_cols).agg(
+      summary_df = df.groupby(group_cols, dropna=False).agg(
         shots=('yob', 'size'),  # this is # shots given (size of the group identified by the index)
         # now add additional columns 
         **{f'deaths_within_{threshold}d': (f'death_within_{threshold}d', 'sum') for threshold in thresholds}
