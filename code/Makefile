@@ -25,7 +25,7 @@ vax2=$(datadir)/vax2.csv
 
 # comorbidities csv downloaded from website
 com_source=$(datadir)/ockovani-profese.csv
-comorbidities=$(datadir)/comorbidities.csv
+comorbidity=$(datadir)/comorbidity.csv
 
 
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
@@ -52,10 +52,11 @@ $(vax2): $(source_file)
 	@python vax.py
 
 
-comorbidities: $(comorbidities)
+comorbidity:	$(comorbidity)
 
-$(comorbidities): $(com_source)
-	@python comorbidities.py
+# make the comorbidities.xls file
+$(comorbidity): $(com_source)
+	@python comorbidity.py
 
 $(com_source):
 	@echo "Downloading 3.8G file from Czech Republic"
