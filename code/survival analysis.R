@@ -1,3 +1,6 @@
+# written by an epidemiologist who wishes to remain anonymous so he can keep his job
+# (you aren't supposed to question authority apparently)
+
 rm(list = ls()); gc()
 if(!require(pacman)) install.packages("pacman")
 pacman::p_unlock() ## removes any locks from failed installs.
