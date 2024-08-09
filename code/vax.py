@@ -107,13 +107,18 @@ def add_death_cols(df, dod_col, shot_date_cols):
   return df
 
 def analyze(df, group_cols):
-    # specifying dropna is critical so we get all combos, not just people who got 3 shots
+    # this function basically does the groupings and adds the count column(s) for the two different
+    # output styles vax1 and vax2.
+    # vax1 output includes month of death, so lots more rows in the group
+    # vax2 output appends on deaths during various timeframes from the shot
+    # vax3 is like vax2, but with single digit age ranges
     print("grouping...")
     # Define the grouping columns
 
     if 'month_of_death' in group_cols:
       # Calculate summary statistics (# shots, # comorbidities)
       # include empty values as value (dropna=False)
+      # specifying dropna is critical so we get all combos, not just people who got 3 shots!
       summary_df = df.groupby(group_cols, dropna=False).agg(
         count_of_dead_or_survived=('yob', 'size')  # of people who got that combination 
         # CAUTION!!! If the index has a date of death filled in, count=# deaths
@@ -158,7 +163,7 @@ def write_df_to_csv(df1, filename):
   """
   # don't muck with the original
   df=df1.copy()   # make a copy so don't muck with the original
-  # add a space to make sure not interpreted as a date by excel
+  # add a space in front of the age to make sure not interpreted as a date by excel
   df['age']=df['age'].apply(lambda x: f' {x}')   
   
   print("writing file to disk...", filename)
@@ -167,10 +172,9 @@ def write_df_to_csv(df1, filename):
   df.to_csv(filename, index=False, quoting=csv.QUOTE_NONE)
 
 # create the dataframe
-group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3', 'month_of_death'],  # add month of date
-              ['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3']) # no month of date in group
-
-
+group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3', 'month_of_death'],  # add month of death to group
+              ['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # no month of death in grouped columns
+              ['sex', 'YOB', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3']) # YOB instead of date range
 
 # Start executing here
 df=read_csv() 
