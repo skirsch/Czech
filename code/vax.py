@@ -1,11 +1,11 @@
 '''
 Analyze the CZ records file which is vaccine record level data.
 
-Creates two worksheets: 
+Creates 3 worksheets: 
 
 1. death by month which uses month of death (month_of_death) as grouping criteria
 2. within 365 days of FIRST shot which doesn't use month_of_death as grouping and will count deaths within 365 days of shot
-
+3. same as 2, but with YOB column instead of 5 year age range
 Shot 4 is useless... too late in the year
 
 '''
@@ -112,15 +112,15 @@ def analyze(df, group_cols):
     # vax1 output includes month of death, so lots more rows in the group
     # vax2 output appends on deaths during various timeframes from the shot
     # vax3 is like vax2, but with single digit age ranges
-    print("grouping...")
+    # print("grouping by", group_cols)
     # Define the grouping columns
 
     if 'month_of_death' in group_cols:
       # Calculate summary statistics (# shots, # comorbidities)
-      # include empty values as value (dropna=False)
+      # include empty values as a permissiable value for the index (e.g., third shot is blank) (dropna=False)
       # specifying dropna is critical so we get all combos, not just people who got 3 shots!
       summary_df = df.groupby(group_cols, dropna=False).agg(
-        count_of_dead_or_survived=('yob', 'size')  # of people who got that combination 
+        count_of_dead_or_survived=('yob', 'size')  # of people who got that exact combination 
         # CAUTION!!! If the index has a date of death filled in, count=# deaths
         # if the index has NO date of death, then these are people who got shot who did NOT die
         # i.e., who survived
@@ -129,15 +129,18 @@ def analyze(df, group_cols):
 
       ).reset_index()
     else:
-       # OK, month of death isn't in group by, so this is our chance to create columns for deaths 
-       # count number of people who died within N months of the most recent shot in this row
+      # OK, month of death isn't in group by, so this is our chance to create columns for deaths 
+      # count number of people who died within N months of the most recent shot in this row
 
+      print("grouping using the shorter index")
       # Group by specified columns and calculate counts and total
       summary_df = df.groupby(group_cols, dropna=False).agg(
         shots=('yob', 'size'),  # this is # shots given (size of the group identified by the index)
         # now add additional columns 
         **{f'deaths_within_{threshold}d': (f'death_within_{threshold}d', 'sum') for threshold in thresholds}
         ).reset_index()
+      
+      # print("done grouping...")
 
     # Convert com to integer is no longer needed since count instead of sum
     # summary_df['com'] = summary_df['com'].astype(int)
@@ -163,10 +166,14 @@ def write_df_to_csv(df1, filename):
   """
   # don't muck with the original
   df=df1.copy()   # make a copy so don't muck with the original
-  # add a space in front of the age to make sure not interpreted as a date by excel
-  df['age']=df['age'].apply(lambda x: f' {x}')   
+  # if there is an age column, add a space in front of the age to make sure not interpreted as a date by excel
   
   print("writing file to disk...", filename)
+
+  # if we're outputting an age column, modify it for excel by adding a space before each value so not interpreted as date
+  if 'age' in df.columns:
+    df['age']=df['age'].apply(lambda x: f' {x}')   
+  
   # make sure strings have quotes around them to ensure excel doesn't interpret 12-15 as a date
   # quoting=csv.QUOTE_NONNUMERIC will quote dates which is a problem
   df.to_csv(filename, index=False, quoting=csv.QUOTE_NONE)
@@ -174,7 +181,7 @@ def write_df_to_csv(df1, filename):
 # create the dataframe
 group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3', 'month_of_death'],  # add month of death to group
               ['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # no month of death in grouped columns
-              ['sex', 'YOB', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3']) # YOB instead of date range
+              ['sex', 'yob', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3']) # YOB instead of date range
 
 # Start executing here
 df=read_csv() 
