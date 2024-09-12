@@ -162,11 +162,11 @@ def analyze(df, group_cols):
       # Group by specified columns and calculate counts and total
       summary_df = df.groupby(group_cols, dropna=False).agg(
         shots=('yob', 'size'),  # this is # shots given (size of the group identified by the index)
-        # now add additional columns 
+        # now add additional columns for dose 1 thresholds, then dose 2 thresholds, etc.
         **{f'deaths_within_{threshold}d_d{dose}': (f'death_within_{threshold}d_d{dose}', 'sum') 
-           for threshold in thresholds
            for dose in range(1,4) 
-           } 
+           for threshold in thresholds  # thresholds will vary the fastest
+          } 
         ).reset_index()
       
       # print("done grouping...")
