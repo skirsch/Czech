@@ -110,17 +110,17 @@ def add_death_cols(df, dod_col, shot_date_cols):
   # days until death column (based on the first shot date)
 
   # First, if you are NOT vaccinated, then let's pretend your vax date is Jan 1, 2020
-  # and we'll set the type to UNVAXXED
+  # and we'll set the type to UNVAXXED. fillna means fill only if empty.
   df['date_1_'] = df['date_1_'].fillna(pd.Timestamp('2020-01-01'))
   df['brand_1'] = df['brand_1'].fillna('UNVAXXED')
 
-  df['days_until_death'] = (df[dod_col] - df['date_1_']).dt.days.round(0)
+  # now compute death outcomes for doses 1 to 3
+  for dose in range(1,4):
+    df[f'days_until_death_from_d{dose}'] = (df[dod_col] - df[f'date_{dose}_']).dt.days.round(0)
 
-  # now create boolean columns for each record indicating where the death was (90 days, 180 days, etc.)
-  
-  for threshold in thresholds:
-    df[f'death_within_{threshold}d'] = df['days_until_death'] <= threshold
-
+    # now create boolean columns for each record indicating where the death was (90 days, 180 days, etc.)
+    for threshold in thresholds:
+      df[f'death_within_{threshold}d_d{dose}'] = df[f'days_until_death_from_d{dose}'] <= threshold
 
   # Group by specified columns and sum the boolean columns
   # result = df.groupby(group_cols)[['death_within_3m', 'death_within_6m', 'death_within_9m', 'death_within_12m']].sum().reset_index()
@@ -163,7 +163,10 @@ def analyze(df, group_cols):
       summary_df = df.groupby(group_cols, dropna=False).agg(
         shots=('yob', 'size'),  # this is # shots given (size of the group identified by the index)
         # now add additional columns 
-        **{f'deaths_within_{threshold}d': (f'death_within_{threshold}d', 'sum') for threshold in thresholds}
+        **{f'deaths_within_{threshold}d_d{dose}': (f'death_within_{threshold}d_d{dose}', 'sum') 
+           for threshold in thresholds
+           for dose in range(1,4) 
+           } 
         ).reset_index()
       
       # print("done grouping...")
@@ -214,6 +217,8 @@ group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2',
 
 # Start executing here
 # Note that the input filename is hardcoded
+# read_csv will read in the file, change column names, add the death columns (for up to three doses)
+# so we will be set up for various groupings
 df=read_csv() 
 
 # analyze two ways: one allows you to filter on death month, 
