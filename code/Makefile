@@ -33,6 +33,9 @@ comorbidity=$(datadir)/comorbidity.csv
 all: time-series death-rates analysis time-series-all comorbidities vax
 	@echo "All done!"
 
+download:
+	@wget -O - https://github.com/skirsch/Czech/raw/main/data/CR_records.csv.xz?download= >$(compressed_source_file)
+.PHONY: download
 
 # this target makes a time series from the FULL dataset, rather than from a restricted dataset 
 # that just looks at those given dose 2 in 2021. So this is the traditional time series showing
