@@ -168,23 +168,15 @@ To get the repo including the 50M source data file:
 git clone https://github.com/skirsch/Czech
 ```
 
-To verify the source data file `data/CR_records.csv.xz`:
+Note the data file `data/CR_records.csv.xz` is stored in Git-LFS, so you can either:
 
-```shell
-ls -la data/CR_records.csv.xz && du -sh data/CR_records.csv.xz && md5sum data/CR_records.csv.xz
-```
-
-```
--rw-r--r--@ 1 user  staff  52034168 Sep 14 14:15 data/CR_records.csv.xz
- 50M    data/CR_records.csv.xz
-5ddcec3311d80ebe5c3e57af503d0994  data/CR_records.csv.xz
-```
-
-To re-download:
+* install the Git LFS client locally (https://github.com/git-lfs/git-lfs/wiki/Tutorial#pulling-and-cloning); or
+* `make download` to manually download, then verify the md5sum matches: `5ddcec3311d80ebe5c3e57af503d0994`
 
 ```shell
 cd code && \
-make download
+make download && \
+md5sum ../data/CR_records.csv.xz
 ```
 
 To generate all the MR stats and time series files:
@@ -196,18 +188,36 @@ make
 
 The build time for all files is about 2 hours.
 
-
 To just make the final analysis (45 minutes):
 ```shell
 cd code && \
 make analysis
 ```
 
-
 To start over from scratch:
 ```shell
 cd code && \
 make clean
+```
+
+#### OPTIONAL: Docker
+
+Alternatively, if you don't have python3 and pandas installed locally, you can run the build in Docker:
+
+1. Install Docker
+2. Configure Docker so that your Git repo is a Shared Volume
+
+```shell
+make docker.build
+make docker.run
+# make docker.shell # access the Docker environment to build by hand
+```
+
+Docker images take up a fair bit of disk-space, so you can reclaim afterwards via:
+
+```shell
+docker container prune
+docker image prune
 ```
 
 ### Spreadsheets to analyze the time series data and the 1 year mortality data

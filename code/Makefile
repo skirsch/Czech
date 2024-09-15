@@ -1,3 +1,6 @@
+NAME:=skirsch/czech
+HASH:=$(shell git rev-parse --short HEAD)
+
 # generate all the analysis files
 # the last file is the time series analysis so we make everything depend on the previous step
 
@@ -33,11 +36,7 @@ comorbidity=$(datadir)/comorbidity.csv
 all: time-series death-rates analysis time-series-all comorbidities vax
 	@echo "All done!"
 
-download:
-	@wget -O - https://github.com/skirsch/Czech/raw/main/data/CR_records.csv.xz?download= >$(compressed_source_file)
-.PHONY: download
-
-# this target makes a time series from the FULL dataset, rather than from a restricted dataset 
+# this target makes a time series from the FULL dataset, rather than from a restricted dataset
 # that just looks at those given dose 2 in 2021. So this is the traditional time series showing
 # all the transitions.
 time-series-all: $(time_series_all_files)
@@ -147,4 +146,24 @@ clean:
 	@rm -f $(source_file) $(record_file) $(records21_file) $(dose2_21_file) $(pfizer_dose2_21_file) $(moderna_dose2_21_file)
 	@rm -f $(pfizer_stats) $(moderna_stats) $(time_series_files) $(full_matrix)
 
-	
+download:
+	@wget -O - https://github.com/skirsch/Czech/raw/main/data/CR_records.csv.xz?download= >$(compressed_source_file)
+.PHONY: download
+
+docker.build:
+	@echo "docker.build"
+	docker build .. \
+		-f ../Dockerfile -t $(NAME):$(HASH) \
+		--build-arg BUILD_REVISION=$(HASH)
+	docker tag $(NAME):$(HASH) $(NAME):latest
+.PHONY: docker.build
+
+docker.shell:
+	@echo "docker.shell"
+	docker run --rm -it -v $(PWD)/..:/src $(NAME):$(HASH) /bin/bash
+.PHONY: docker.shell
+
+docker.run:
+	@echo "docker.run"
+	docker run --rm -it -v $(PWD)/..:/src --entrypoint ../entrypoint.sh $(NAME):$(HASH)
+.PHONY: docker.run
