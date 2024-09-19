@@ -184,7 +184,7 @@ To generate all the MR stats and time series files:
 ```shell
 cd code && \
 make
-``` 
+```
 
 The build time for all files is about 2 hours.
 
