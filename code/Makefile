@@ -19,9 +19,9 @@ time_series_files=$(datadir)/ts_*
 full_matrix=$(datadir)/full_matrix.csv
 time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt 
 
-# vax1 and vax2 csv files
-vax1=$(datadir)/vax1.csv
-vax2=$(datadir)/vax2.csv
+# vax_N.csv files; just need to list the last one because the program remakes all of them
+# so if the last one is there, we should be good to go
+vax_final=$(datadir)/vax_4.csv
 
 # comorbidities csv downloaded from website
 com_source=$(datadir)/ockovani-profese.csv
@@ -29,10 +29,13 @@ comorbidity=$(datadir)/comorbidity.csv
 
 
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
-# note that the analysis supercedes the 
+# vax target will meke the vax1.csv, etc files
 all: time-series death-rates analysis time-series-all comorbidities vax
 	@echo "All done!"
 
+download:
+	@wget -O - https://github.com/skirsch/Czech/raw/main/data/CR_records.csv.xz?download= >$(compressed_source_file)
+.PHONY: download
 
 # this target makes a time series from the FULL dataset, rather than from a restricted dataset 
 # that just looks at those given dose 2 in 2021. So this is the traditional time series showing
@@ -45,10 +48,10 @@ $(time_series_all_files): $(record_file)
 
 
 # these are the ultimate csv files suitable for pivot table analysis
-vax: $(vax2)
+vax: $(vax_final)
 
-$(vax2): $(source_file)
-	@echo "Making the two vax csv files from the Czech source file"
+$(vax_final): $(source_file)
+	@echo "Making all the vax_N.csv files from the Czech source file"
 	@python vax.py
 
 

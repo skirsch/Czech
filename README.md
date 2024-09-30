@@ -163,25 +163,50 @@ irnaty",2022-09-29,,"CO08","Comirnaty Original/Omicron BA.1",2023-10-10,"HH0832"
 
 ### Doing the data analysis
 To get the repo including the 50M source data file:
-```
+
+```shell
 git clone https://github.com/skirsch/Czech
 ```
-To generate all the MR stats and time series files:
+
+To verify the source data file `data/CR_records.csv.xz`:
+
+```shell
+ls -la data/CR_records.csv.xz && du -sh data/CR_records.csv.xz && md5sum data/CR_records.csv.xz
 ```
-cd code
+
+```
+-rw-r--r--@ 1 user  staff  52034168 Sep 14 14:15 data/CR_records.csv.xz
+ 50M    data/CR_records.csv.xz
+5ddcec3311d80ebe5c3e57af503d0994  data/CR_records.csv.xz
+```
+
+To re-download:
+
+```shell
+cd code && \
+make download
+```
+
+To generate all the MR stats and time series files:
+
+```shell
+cd code && \
 make
 ``` 
+
 The build time for all files is about 2 hours.
 
 
 To just make the final analysis (45 minutes):
-```
+```shell
+cd code && \
 make analysis
 ```
 
 
 To start over from scratch:
-```
+```shell
+cd code && \
 make clean
 ```
 
