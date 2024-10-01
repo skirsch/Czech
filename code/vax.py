@@ -1,7 +1,9 @@
 '''
 Analyze the CZ records file which is vaccine record level data.
 
-Creates 4 csv files:
+  make vax
+
+will create 4 csv files:
 
 1. death by month which uses month of death (month_of_death) as grouping criteria
 2. within 365 days of FIRST shot which doesn't use month_of_death as grouping and will count deaths within 365 days of shot
@@ -163,7 +165,9 @@ def analyze(df, group_cols):
       # Group by specified columns and calculate counts and total
       summary_df = df.groupby(group_cols, dropna=False).agg(
         shots=('yob', 'size'),  # this is # shots given (size of the group identified by the index)
-        # now add additional columns for dose 1 thresholds, then dose 2 thresholds, etc.
+        # now add the deaths for the different time thresholds after dose 1, dose 2, dose 3, ...
+        # (90 days, 180 days, etc)
+        # now add additional columns for dose 1 death thresholds, then dose 2 deaths thresholds, etc.
         **{f'deaths_within_{threshold}d_d{dose}': (f'death_within_{threshold}d_d{dose}', 'sum') 
            for dose in range(1,4) 
            for threshold in thresholds  # thresholds will vary the fastest
@@ -214,7 +218,12 @@ def write_df_to_csv(df1, filename):
 group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3', 'month_of_death'],  # add month of death to group
               ['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # outputs mortality at N months after the shot
               ['sex', 'yob', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # YOB instead of date range (so more detailed)
-              ['age', 'brand_2', 'batch_2', 'date_2'] # BATCH SAFETY ANALYSIS. This is by 5 year age range, mfg, batch, and month of injection 
+              ['age', 'brand_2', 'batch_2', 'date_2'], # BATCH SAFETY ANALYSIS. This is by 5 year age range, mfg, batch, and month of injection 
+              # simplified files only 2,000 lines long for looking at mortality after dose 1,2, and 3
+              ['age', 'date_1', 'brand_1'], # vax 5 is the super-simple dose 1 mortality analysis to keep file sizes short
+              ['age', 'date_2', 'brand_2'],  # vax 6 is the super-simple dose 2 mortality analysis to keep file sizes short
+              ['age', 'date_3', 'brand_3']  # vax 7 is the super-simple dose 3 mortality analysis to keep file sizes short
+                                            # make sure to look in the CORRECT column for the death count for THAT dose!
               ) 
 # Note that there isn't a group like:
 #               ['age', 'date_2', 'brand_2', 'comorbidity']  # comorbidy analysis: death after 2nd shot with comorbidity field
@@ -222,6 +231,11 @@ group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2',
 # The reason is simple: the original data does NOT have this important information!!! It is in the vaccine administration database,
 # but that is a separate database and they didn't do the JOIN.
 
+### ASMR estimate
+# Note that for age 60 - 64	who got shot in Sep-21 with	Comirnaty	3442 got the shot and 34 died within 1 year of the shot which is a 1% mortality rate
+# which is 1,000 per 100,000 man-years as the ASMR. So the ASMR should be around 1000 or so.
+#
+# 
 
 # Start executing here
 # Note that the input filename is hardcoded
