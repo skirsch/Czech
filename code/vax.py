@@ -36,7 +36,8 @@ def read_csv(file_path=source_file):
     selected_cols = ['Pohlavikod', 'Rok_narozeni', 'DatumUmrti', # sex, YOB, DOD,
                      'Datum_1', 'Sarze_1', 'OckovaciLatka_1',    # date of shot, batchID, BrandID
                      'Datum_2', 'Sarze_2', 'OckovaciLatka_2',
-                     'Datum_3', 'Sarze_3', 'OckovaciLatka_3']
+                     'Datum_3', 'Sarze_3', 'OckovaciLatka_3'
+                     ]
     
     # the date_ columns (shot dates and the death date) are actual date objects which I later convert to strings in a later phase.
     # Note the parse_dates argument to the read_csv.
@@ -209,10 +210,17 @@ def write_df_to_csv(df1, filename):
 
 # define the grouping columns for each of the CSV files I will output 
 # the first one adds months of death to allow for analysis restricting months of deaths, e.g., to low COVID months
+# all the groupings count shots and deaths EXCEPT the first one where the COUNT column is dual purpose (either dead or alive count)
 group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3', 'month_of_death'],  # add month of death to group
               ['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # outputs mortality at N months after the shot
               ['sex', 'yob', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # YOB instead of date range (so more detailed)
-              ['age', 'brand_2', 'batch_2', 'date_2']) # BATCH SAFETY ANALYSIS. This is by 5 year age range, mfg, batch, and month of injection 
+              ['age', 'brand_2', 'batch_2', 'date_2'] # BATCH SAFETY ANALYSIS. This is by 5 year age range, mfg, batch, and month of injection 
+              ) 
+# Note that there isn't a group like:
+#               ['age', 'date_2', 'brand_2', 'comorbidity']  # comorbidy analysis: death after 2nd shot with comorbidity field
+# where we can look with comorbidities and separate them from those without. 
+# The reason is simple: the original data does NOT have this important information!!! It is in the vaccine administration database,
+# but that is a separate database and they didn't do the JOIN.
 
 
 # Start executing here
