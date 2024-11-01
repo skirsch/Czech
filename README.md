@@ -41,7 +41,7 @@ So uneven cluster randomization might play a role in the mortality rate, but it 
  See my Substack for more info.
 
 ### The specifics
-* We legally obtained over 10M records people in Czech Republic via FOIA. The data was originally [obtained by a Czech citizen (Stanislav Veselý) under a FOIA request](https://www.skirsch.com/covid/CzechFOIA.pdf). Tomáš Furst posted it to github 4 months ago on March 29, 2024 but he didn’t tell anyone and nobody noticed.
+* We legally obtained over 10M records people in Czech Republic via FOIA. The data was originally [obtained by a Czech citizen (Stanislav Veselý) under a FOIA request](https://www.skirsch.com/covid/CzechFOIA.pdf). Tomáš Furst [posted it to github](https://github.com/PalackyUniversity/uzis-data-analysis/tree/main) on March 29, 2024 but he didn’t tell anyone and nobody noticed. So it sat there for over 4 months before I learned about it.
 * The records preserved privacy by using birth year instead of birth date.
 * The records have been [verified to be authentic](https://sars2.net/czech.html#Number_of_vaccine_doses_by_type_in_record_level_data_compared_to_MoH_data)
 * There was one record for each person
@@ -148,7 +148,7 @@ This has everything we need to determine whether the COVID vaccines are safe.
 
 ### The CR source data  
 
-The CR source [data can be downloaded here](https://github.com/PalackyUniversity/uzis-data-analysis/tree/main).
+The original CR source [data can be downloaded here](https://github.com/PalackyUniversity/uzis-data-analysis/tree/main).
 
 It was first made available on Github on Mar 29, 2024.
 
