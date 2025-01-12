@@ -1,4 +1,13 @@
 '''
+This produces vaerious time series analysis I thought would be useful.
+
+These time series are simply 1 year mortality for given vaccine dose/brand combinations.
+
+What you really want to see is death per month for the next 12 months for each combination of date, dose, brand!
+
+but see vax.py for the much more detailed time series outputs.
+
+About the script:
 
 Takes 1 argument: The source file in original Czech format
 Output written to std out is a .csv file with a full matrix analysis

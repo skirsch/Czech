@@ -1,6 +1,11 @@
 '''
 Analyze the CZ records file which is vaccine record level data.
 
+This is the most detailed time series summaries. Makes 7 different analyses output files.
+
+vax1.py is the most detailed, but it is VERY VERY tricky to interpret (see comments)
+
+
   make vax
 
 will create 4 csv files:
@@ -19,7 +24,13 @@ from datetime import timedelta
 
 # time window for deaths in summary stats
 # so we can compare deaths for 90, 180, 270, etc. days from FIRST shot
-thresholds=[90, 180, 270, 365, 455, 545, 635, 730]
+# thresholds=[90, 180, 270, 365, 455, 545, 635, 730]
+
+# this sets the column for showing the death counts in the indexed cohort. So we'll be able to see the cumulative deaths by month since the shot
+# was given. Seeing monthly resolution on this is stunning since if deaths per month go UP in the cohort, that's a problem.
+
+thresholds=[30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 365]   # this will show the slope which should be very interesting
+
 source_file="../data/CR_records.csv"
 output_path="../data/vax_"
 # test this using _10K.csv which is shorter
@@ -170,7 +181,7 @@ def analyze(df, group_cols):
         # now add additional columns for dose 1 death thresholds, then dose 2 deaths thresholds, etc.
         **{f'deaths_within_{threshold}d_d{dose}': (f'death_within_{threshold}d_d{dose}', 'sum') 
            for dose in range(1,4) 
-           for threshold in thresholds  # thresholds will vary the fastest
+           for threshold in thresholds  # thresholds will vary the fastest so output will be dose (slow vary) and threshold days (30, 90 days etc)
           } 
         ).reset_index()
       
@@ -247,9 +258,10 @@ df=read_csv()
 # the other computes leaves the death month out of the group and sums the death count for 3,6,9,12 months after the shot () plus avg days until death
 suffix=1
 
-# write out two .csv files: one for month of deeath in the index (for granualar analysis)
-# and one where we count the deaths in first 90, 180, etc. days since the shot given to a person in the group
+# write out .csv files for each group type: 
+# vax1.csv is for month of deeath in the index (for granualar analysis but TRICKY to use)
+# others where we count the deaths in first 90, 180, etc. days since the shot given to a person in the group
 for cols in group_cols:
   df2=analyze(df, cols)
-  write_df_to_csv(df2, output_path+str(suffix)+'.csv')
+  write_df_to_csv(df2, output_path+str(suffix)+'.csv')   # write it out
   suffix+=1
