@@ -30,7 +30,7 @@ comorbidity=$(datadir)/comorbidity.csv
 
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
 # vax target will meke the vax1.csv, etc files
-all: time-series death-rates analysis time-series-all comorbidities vax
+all: time-series death-rates analysis time-series-all comorbidity vax
 	@echo "All done!"
 
 download:
