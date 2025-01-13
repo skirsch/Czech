@@ -1,20 +1,23 @@
 '''
+This script makes all the vax_N.csv analysis files
+
 Analyze the CZ records file which is vaccine record level data.
 
 This is the most detailed time series summaries. Makes 7 different analyses output files.
 
-vax1.py is the most detailed, but it is VERY VERY tricky to interpret (see comments)
 
 
   make vax
 
-will create 4 csv files:
+will create 7 vax_N.csv files:
 
-1. death by month which uses month of death (month_of_death) as grouping criteria
-2. within 365 days of FIRST shot which doesn't use month_of_death as grouping and will count deaths within 365 days of shot
-3. same as 2, but with YOB column instead of 5 year age range
-Shot 4 is useless... too late in the year
-4. Age, date of shot 2, brand of shot 2, batch of shot 2 : number of deaths within various timeframes from time of shot
+1. vax death by month which uses month of death (month_of_death) as grouping criteria. vax1.py is the most detailed, but it is VERY VERY tricky to interpret (see comments).
+2. vax2 is generally the one you want if you want lots of detail
+3. vax5 is much shorter and generally tells the full story for dose1
+4. vax6 is vax5 but for dose 2
+5. vax7 is vax but for dose 3
+
+see group_cols below for the full list
 
 '''
 
@@ -228,7 +231,7 @@ def write_df_to_csv(df1, filename):
 # all the groupings count shots and deaths EXCEPT the first one where the COUNT column is dual purpose (either dead or alive count)
 group_cols = (['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3', 'month_of_death'],  # add month of death to group
               ['sex', 'age', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # outputs mortality at N months after the shot
-              ['sex', 'yob', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # YOB instead of date range (so more detailed)
+              ['sex', 'yob', 'date_1', 'date_2', 'date_3', 'brand_1', 'brand_2', 'brand_3'], # YOB instead of age range (so more detailed)
               ['age', 'brand_2', 'batch_2', 'date_2'], # BATCH SAFETY ANALYSIS. This is by 5 year age range, mfg, batch, and month of injection 
               # simplified files only 2,000 lines long for looking at mortality after dose 1,2, and 3
               ['age', 'date_1', 'brand_1'], # vax 5 is the super-simple dose 1 mortality analysis to keep file sizes short

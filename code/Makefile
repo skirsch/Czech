@@ -1,5 +1,6 @@
-# generate all the analysis files
-# the last file is the time series analysis so we make everything depend on the previous step
+# Makefile to generate all the analysis files
+# 
+
 
 # target name: files that must be generated before this can run
 datadir=../data
