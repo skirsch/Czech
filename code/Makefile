@@ -20,6 +20,9 @@ time_series_files=$(datadir)/ts_*
 full_matrix=$(datadir)/full_matrix.csv
 time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt 
 
+# scripts
+vax.py=vax.py
+
 # vax_N.csv files; just need to list the last one because the program remakes all of them
 # so if the last one is there, we should be good to go
 vax_files=$(datadir)/vax_1.csv $(datadir)/vax_2.csv $(datadir)/vax_3.csv $(datadir)/vax_4.csv $(datadir)/vax_5.csv $(datadir)/vax_6.csv $(datadir)/vax_7.csv
@@ -49,11 +52,11 @@ $(time_series_all_files): $(record_file)
 
 
 # these are the ultimate csv files suitable for pivot table analysis
-vax: $(vax_files)
+vax: $(vax_files) $(vax.py)
 
-$(vax_files): $(source_file)
+$(vax_files): $(source_file) $(vax.py)
 	@echo "Making all the vax_N.csv files from the Czech source file"
-	@python vax.py
+	@python $(vax.py)
 
 
 comorbidity:	$(comorbidity)
