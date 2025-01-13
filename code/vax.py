@@ -13,7 +13,7 @@ will create 7 vax_N.csv files:
 
 1. vax death by month which uses month of death (month_of_death) as grouping criteria. vax1.py is the most detailed, but it is VERY VERY tricky to interpret (see comments).
 2. vax2 is generally the one you want if you want lots of detail
-3. vax5 is much shorter and generally tells the full story for dose1
+3. vax5 is much shorter and generally tells the full story for dose1 including month of first dose!
 4. vax6 is vax5 but for dose 2
 5. vax7 is vax but for dose 3
 
@@ -32,7 +32,7 @@ from datetime import timedelta
 # this sets the column for showing the death counts in the indexed cohort. So we'll be able to see the cumulative deaths by month since the shot
 # was given. Seeing monthly resolution on this is stunning since if deaths per month go UP in the cohort, that's a problem.
 
-thresholds=[30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 365]   # this will show the slope which should be very interesting
+thresholds=[30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 390, 420, 450, 480, 510, 540, 570, 600, 630, 660, 690, 720, 750]   # this will show the slope which should be very interesting
 
 source_file="../data/CR_records.csv"
 output_path="../data/vax_"
