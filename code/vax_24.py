@@ -17,35 +17,69 @@
 # data.dtypes() to print out datatypes
 import pandas as pd
 
+data_file='../data/CR=24.csv'
+data_file='../data/sample.csv'
+output_file = '../data/CR-24_summary.csv'
+
 # Load the CSV file into a DataFrame. I already replaced the headers as above.
-data = pd.read_csv('../data/CR-24.csv')
+data = pd.read_csv(datafile)
+
+# rename the columns in English
+data.columns = [
+    'ID', 'Infection', 'Gender', 'YearOfBirth', 'DateOfPositiveTest', 'DateOfResult', 'Recovered', 'Deceased',
+    'Symptom', 'TestType', 'Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose', 'Date_FourthDose',
+    'Date_FifthDose', 'Date_SixthDose', 'Date_SeventhDose', 'VaccineCode_FirstDose', 'VaccineCode_SecondDose',
+    'VaccineCode_ThirdDose', 'VaccineCode_FourthDose', 'VaccineCode_FifthDose', 'VaccineCode_SixthDose',
+    'VaccineCode_SeventhDose', 'PrimaryCauseHospCOVID', 'bin_Hospitalization', 'min_Hospitalization',
+    'days_Hospitalization', 'max_Hospitalization', 'bin_ICU', 'min_ICU', 'days_ICU', 'max_ICU', 'bin_StandardWard',
+    'min_StandardWard', 'days_StandardWard', 'max_StandardWard', 'bin_Oxygen', 'min_Oxygen', 'days_Oxygen',
+    'max_Oxygen', 'bin_HFNO', 'min_HFNO', 'days_HFNO', 'max_HFNO', 'bin_MechanicalVentilation_ECMO',
+    'min_MechanicalVentilation_ECMO', 'days_MechanicalVentilation_ECMO', 'max_MechanicalVentilation_ECMO',
+    'Mutation', 'DateOfDeath', 'Long_COVID', 'DCCI']
+
 
 # Define the index and value fields
-index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'Date_FirstDose', 'Infection', 'DCCI']
-value_fields = ['Count', 'Died_90d', 'Died_180d', 'Died_270d', 'Died_360d']
+index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose', 'Date_FirstDose', 'Infection', 'DCCI']
+value_fields = ['Count', 'Died_90d1', 'Died_180d1', 'Died_270d1', 'Died_360d1', 'Died_90d2', 'Died_180d2', 'Died_270d2', 'Died_360d2', 'Died_90d3', 'Died_180d3', 'Died_270d3', 'Died_360d3']
 
 # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
 data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
 
-# Ensure Infection is an integer
+# Transform the VaccineCode columns to clean then up
+# now need to upper case everything and remove leading and trailing spaces
+brand_cols=['VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose']
+for col in brand_cols:
+    df[col] = df[col].str.strip().str.upper()
+
+# Ensure Infection is an integer (empty=0)
 data['Infection'] = data['Infection'].fillna(0).astype('Int32')
 
 # Convert dates from YYYY-WW format to pandas datetime format
-data['Date_FirstDose'] = pd.to_datetime(data['Date_FirstDose'] + '-1', format='%Y-%W-%w', errors='coerce')
-data['DateOfDeath'] = pd.to_datetime(data['DateOfDeath'] + '-1', format='%Y-%W-%w', errors='coerce')
+for col in ['Date_FirstDose', 'DateOfDeath']:
+    data[col] = pd.to_datetime(data[col] + '-1', format='%Y-%W-%w', errors='coerce')
 
 # only Drop rows without a dose. We need to count everyone, dead or aliev
 data = data.dropna(subset=['Date_FirstDose'])
 
-# Compute days till death (dtd) and convert to int32
-data['dtd'] = (data['DateOfDeath'] - data['Date_FirstDose']).dt.days.astype('Int32')
+doses=['d1', 'd2','d3']
+dose_dict={'d1':'First', 'd2':'Second', 'd3':'Third'}
+day_list=[90,180,270,360]
 
-# Compute the Count and Died_xxd fields using the dtd column
+# Compute days till death (dtd) and convert to int32. do for each dose.
+for d in doses:
+    data['dt'+d] = (data['DateOfDeath'] - data['Date_'+dose_dict[d]+'Dose']).dt.days.astype('Int32')
+# generates lines like:
+#   data['dtd2'] = (data['DateOfDeath'] - data['Date_SecondDose']).dt.days.astype('Int32')
+
+
+# Compute the Count and Died_xxdx fields using the dtdx column
 data['Count'] = 1
-data['Died_90d'] = data['dtd'].apply(lambda x: 1 if pd.notna(x) and x <= 90 else 0)
-data['Died_180d'] = data['dtd'].apply(lambda x: 1 if pd.notna(x) and x <= 180 else 0)
-data['Died_270d'] = data['dtd'].apply(lambda x: 1 if pd.notna(x) and x <= 270 else 0)
-data['Died_360d'] = data['dtd'].apply(lambda x: 1 if pd.notna(x) and x <= 360 else 0)
+for d in doses:
+    for day in day_list:
+        data['Died_'+str(day)+d] = data['dt'+d].apply(lambda x: 1 if pd.notna(x) and x <= day else 0)
+
+# effectively creates lines like these
+# data['Died_180d1'] = data['dtd1'].apply(lambda x: 1 if pd.notna(x) and x <= 180 else 0)
 
 # Perform group_by with aggregation
 summary_df = data.groupby(index_fields)[value_fields].sum().reset_index()
@@ -58,7 +92,6 @@ summary_df['VaccineCode_FirstDose'] = summary_df['VaccineCode_FirstDose'].map(MF
 
 
 # Write the summary DataFrame to a CSV file
-output_file = '../data/summary_output.csv'
 summary_df.to_csv(output_file, index=False)
 
 print(f"Summary file has been written to {output_file}.")
