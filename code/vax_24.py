@@ -1,5 +1,7 @@
 # new vax record level data released in Nov 2024
-# https://www.nzip.cz/data/2135-covid-19-prehled-populace
+# Hence the filename vax_24.py for the analysis of the 2024 Czech Republic data
+
+# Data file: https://www.nzip.cz/data/2135-covid-19-prehled-populace
 #
 # written about here: https://smis-lab.cz/2024/11/07/dalsi-velka-datova-sada-uzis-zverejnena/
 
@@ -15,8 +17,8 @@
 # data.dtypes() to print out datatypes
 import pandas as pd
 
-# Load the CSV file into a DataFrame
-data = pd.read_csv('../data/sample.csv')
+# Load the CSV file into a DataFrame. I already replaced the headers as above.
+data = pd.read_csv('../data/CR-24.csv')
 
 # Define the index and value fields
 index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'Date_FirstDose', 'Infection', 'DCCI']
