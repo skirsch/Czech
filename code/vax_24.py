@@ -5,6 +5,9 @@
 #
 # written about here: https://smis-lab.cz/2024/11/07/dalsi-velka-datova-sada-uzis-zverejnena/
 
+# Notes:
+# DCCI is non-zero only if infected
+# Date of death ranges from 2020-10 to 2024-34 (using wk number format)
 
 # all fields (in English)
 # ID,Infection,Gender,YearOfBirth,DateOfPositiveTest,DateOfResult,Recovered,Deceased,Symptom,TestType,Date_FirstDose,Date_SecondDose,Date_ThirdDose,Date_FourthDose,Date_FifthDose,Date_SixthDose,Date_SeventhDose,
@@ -48,7 +51,7 @@ value_fields = ['Countd1', 'Died_90d1', 'Died_180d1', 'Died_270d1', 'Died_360d1'
 data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
 
 # Transform the VaccineCode columns to clean then up
-# now need to upper case everything and remove leading and trailing spaces
+# remove leading and trailing spaces, convert to uppercase so can be found in dictionary
 brand_cols=['VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose']
 for col in brand_cols:
     data[col] = data[col].str.strip().str.upper()
@@ -84,17 +87,20 @@ for d in doses:
 # effectively creates lines like these
 # data['Died_180d1'] = data['dtd1'].apply(lambda x: 1 if pd.notna(x) and x <= 180 else 0)
 
+# groupby only summarizes fields with values so ensure that the Code fields have a value "NONE"
+VaccineCode_fields=['VaccineCode_SecondDose', 'VaccineCode_ThirdDose']
+data[VaccineCode_fields] = data[VaccineCode_fields].fillna('NONE')
+
 # Perform group_by with aggregation
 summary_df = data.groupby(index_fields)[value_fields].sum().reset_index()
 
 # now modify the labels to be more user friendly
 from mfg_codes import MFG_DICT
 
-# Transform VaccineCode_xxxDose using the dictionary
+# Transform VaccineCode_xxxDose using the dictionary so have friendly names if the name is found in the dictionary lookup
+# if there is no match in the dictionary, leave the entry untouched (hence the .fillna to fill with original value)
 for d in doses:
-    summary_df['VaccineCode_'+dose_dict[d]] = summary_df['VaccineCode_'+dose_dict[d]].map(MFG_DICT).fillna(data['VaccineCode_'+dose_dict[d]])
-# summary_df['VaccineCode_FirstDose'] = summary_df['VaccineCode_FirstDose'].map(MFG_DICT).fillna(data['VaccineCode_FirstDose'])
-
+    summary_df['VaccineCode_'+dose_dict[d]] = summary_df['VaccineCode_'+dose_dict[d]].map(MFG_DICT) 
 
 # Write the summary DataFrame to a CSV file
 summary_df.to_csv(output_file, index=False)

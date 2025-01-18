@@ -13,7 +13,7 @@ R_MFG = [PFIZER, MODERNA, ASTRA, JANN, NOVAVAX, OTHER, UNVAX]
         
 MFG_DICT = {'CO01': PFIZER, 'CO02': MODERNA, 'CO08':PFIZER, 'CO09': PFIZER, 'CO15': MODERNA, 'CO16': PFIZER, 
             'CO19': MODERNA, 'CO20': PFIZER, 'CO21':PFIZER, 'CO23':PFIZER,
-             'CO03': ASTRA, 'CO04':JANN, 'CO07': NOVAVAX }
+             'CO03': ASTRA, 'CO04':JANN, 'CO07': NOVAVAX, '': UNVAX, UNVAX:UNVAX}
 
 def parse_mfg(mfg):
     if not mfg:
