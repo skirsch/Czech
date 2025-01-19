@@ -48,7 +48,8 @@ def main(data_file, output_file):
     index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose', 'Date_FirstDose', 'Infection', 'DCCI']
     value_fields = ['Countd1', 'Died_90d1', 'Died_180d1', 'Died_270d1', 'Died_360d1', 
                     'Countd2', 'Died_90d2', 'Died_180d2', 'Died_270d2', 'Died_360d2', 
-                    'Countd3', 'Died_90d3', 'Died_180d3', 'Died_270d3', 'Died_360d3']
+                    'Countd3', 'Died_90d3', 'Died_180d3', 'Died_270d3', 'Died_360d3',
+                    'died_in_NCmonth_2021', 'died_in_NCmonth_2022']  # this is set if the person died in a low COVID month
 
     # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
     data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
@@ -76,8 +77,11 @@ def main(data_file, output_file):
         ['Date_FirstDose', 'VaccineCode_FirstDose']
     ] = ['2022-01-01', 'PLACEBO']
 
-
-    #  Drop rows without a first dose. We need to count everyone who got a dose, dead or alive
+    # Create 'died_in_NCmonth' column for deaths between May 30, 2021, and Oct 12, 2021 (inclusive)
+    data['died_in_NCmonth_2021'] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
+    data['died_in_NCmonth_2022'] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2022-05-10') <= x <= pd.Timestamp('2022-07-10') else 0)
+    
+    #  Drop rows without a first dose. We need to count everyone who got a dose, dead or alive. We gave unvaxxed people a "PLACEBO" does in Jan 2022.
     data = data.dropna(subset=['Date_FirstDose'])
 
     doses=['d1', 'd2','d3']
@@ -105,14 +109,13 @@ def main(data_file, output_file):
     VaccineCode_fields=['VaccineCode_SecondDose', 'VaccineCode_ThirdDose']
     data[VaccineCode_fields] = data[VaccineCode_fields].fillna('NONE')
 
-    # Perform group_by with aggregation
+    # Perform group_by with aggregation. This does all the heavy lifting!
     summary_df = data.groupby(index_fields)[value_fields].sum().reset_index()
 
     # now modify the labels to be more user friendly
     from mfg_codes import MFG_DICT
 
-    # Transform VaccineCode_xxxDose using the dictionary so have friendly names if the name is found in the dictionary lookup
-    # if there is no match in the dictionary, leave the entry untouched (hence the .fillna to fill with original value)
+    # Transform VaccineCode_xxxDose using the dictionary so have friendly names.
     for d in doses:
         summary_df['VaccineCode_'+dose_dict[d]] = summary_df['VaccineCode_'+dose_dict[d]].map(MFG_DICT) 
 
