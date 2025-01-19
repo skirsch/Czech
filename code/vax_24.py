@@ -24,85 +24,113 @@ data_file='../data/CR=24.csv'
 data_file='../data/sample.csv'
 output_file = '../data/CR-24_summary.csv'
 
-# Load the CSV file into a DataFrame. I already replaced the headers as above.
-data = pd.read_csv(data_file)
 
-# rename the columns in English
-data.columns = [
-    'ID', 'Infection', 'Gender', 'YearOfBirth', 'DateOfPositiveTest', 'DateOfResult', 'Recovered', 'Deceased',
-    'Symptom', 'TestType', 'Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose', 'Date_FourthDose',
-    'Date_FifthDose', 'Date_SixthDose', 'Date_SeventhDose', 'VaccineCode_FirstDose', 'VaccineCode_SecondDose',
-    'VaccineCode_ThirdDose', 'VaccineCode_FourthDose', 'VaccineCode_FifthDose', 'VaccineCode_SixthDose',
-    'VaccineCode_SeventhDose', 'PrimaryCauseHospCOVID', 'bin_Hospitalization', 'min_Hospitalization',
-    'days_Hospitalization', 'max_Hospitalization', 'bin_ICU', 'min_ICU', 'days_ICU', 'max_ICU', 'bin_StandardWard',
-    'min_StandardWard', 'days_StandardWard', 'max_StandardWard', 'bin_Oxygen', 'min_Oxygen', 'days_Oxygen',
-    'max_Oxygen', 'bin_HFNO', 'min_HFNO', 'days_HFNO', 'max_HFNO', 'bin_MechanicalVentilation_ECMO',
-    'min_MechanicalVentilation_ECMO', 'days_MechanicalVentilation_ECMO', 'max_MechanicalVentilation_ECMO',
-    'Mutation', 'DateOfDeath', 'Long_COVID', 'DCCI']
+def main(data_file, output_file):
+    # Load the CSV file into a DataFrame. 
+    # I have plenty of memory so let pandas know that to avoid type errors on dose 6 which happens later in the file
+    data = pd.read_csv(data_file, low_memory=False)
+
+    # rename the columns in English
+    data.columns = [
+        'ID', 'Infection', 'Gender', 'YearOfBirth', 'DateOfPositiveTest', 'DateOfResult', 'Recovered', 'Deceased',
+        'Symptom', 'TestType', 'Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose', 'Date_FourthDose',
+        'Date_FifthDose', 'Date_SixthDose', 'Date_SeventhDose', 'VaccineCode_FirstDose', 'VaccineCode_SecondDose',
+        'VaccineCode_ThirdDose', 'VaccineCode_FourthDose', 'VaccineCode_FifthDose', 'VaccineCode_SixthDose',
+        'VaccineCode_SeventhDose', 'PrimaryCauseHospCOVID', 'bin_Hospitalization', 'min_Hospitalization',
+        'days_Hospitalization', 'max_Hospitalization', 'bin_ICU', 'min_ICU', 'days_ICU', 'max_ICU', 'bin_StandardWard',
+        'min_StandardWard', 'days_StandardWard', 'max_StandardWard', 'bin_Oxygen', 'min_Oxygen', 'days_Oxygen',
+        'max_Oxygen', 'bin_HFNO', 'min_HFNO', 'days_HFNO', 'max_HFNO', 'bin_MechanicalVentilation_ECMO',
+        'min_MechanicalVentilation_ECMO', 'days_MechanicalVentilation_ECMO', 'max_MechanicalVentilation_ECMO',
+        'Mutation', 'DateOfDeath', 'Long_COVID', 'DCCI']
 
 
-# Define the index and value fields
-index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose', 'Date_FirstDose', 'Infection', 'DCCI']
-value_fields = ['Countd1', 'Died_90d1', 'Died_180d1', 'Died_270d1', 'Died_360d1', 
-                'Countd2', 'Died_90d2', 'Died_180d2', 'Died_270d2', 'Died_360d2', 
-                'Countd3', 'Died_90d3', 'Died_180d3', 'Died_270d3', 'Died_360d3']
+    # Define the index and value fields
+    index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose', 'Date_FirstDose', 'Infection', 'DCCI']
+    value_fields = ['Countd1', 'Died_90d1', 'Died_180d1', 'Died_270d1', 'Died_360d1', 
+                    'Countd2', 'Died_90d2', 'Died_180d2', 'Died_270d2', 'Died_360d2', 
+                    'Countd3', 'Died_90d3', 'Died_180d3', 'Died_270d3', 'Died_360d3']
 
-# Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
-data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
+    # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
+    data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
 
-# Transform the VaccineCode columns to clean then up
-# remove leading and trailing spaces, convert to uppercase so can be found in dictionary
-brand_cols=['VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose']
-for col in brand_cols:
-    data[col] = data[col].str.strip().str.upper()
+    # Transform the VaccineCode columns to clean then up
+    # remove leading and trailing spaces, convert to uppercase so can be found in dictionary
+    brand_cols=['VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose']
+    for col in brand_cols:
+        data[col] = data[col].str.strip().str.upper()
 
-# Ensure Infection is an integer (empty=0)
-data['Infection'] = data['Infection'].fillna(0).astype('Int32')
+    # Ensure Infection is an integer (empty=0)
+    data['Infection'] = data['Infection'].fillna(0).astype('Int32')
 
-# Convert dates from YYYY-WW format to pandas datetime format
-for col in ['Date_FirstDose', 'Date_SecondDose','Date_ThirdDose', 'DateOfDeath']:
-    data[col] = pd.to_datetime(data[col] + '-1', format='%Y-%W-%w', errors='coerce')
+    # Convert dates from YYYY-WW format to pandas datetime format
+    for col in ['Date_FirstDose', 'Date_SecondDose','Date_ThirdDose', 'DateOfDeath']:
+        data[col] = pd.to_datetime(data[col] + '-1', format='%Y-%W-%w', errors='coerce')
 
-# only Drop rows without a first dose. We need to count everyone who got a dose, dead or alive
-data = data.dropna(subset=['Date_FirstDose'])
+    # For rows with no doses and death date >= 2022-01, set Date_FirstDose 
+    # and VaccineCode_FirstDose to 2022 to avoid the effect where in 2021, people more 
+    # likely to die or be vaccined, so gets around the strong pull of the vaccine for all 
+    # alive people.
+    data.loc[
+        data[['Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose', 'Date_FourthDose']].isna().all(axis=1) &
+        (data['DateOfDeath'] >= '2022-01-01'),
+        ['Date_FirstDose', 'VaccineCode_FirstDose']
+    ] = ['2022-01-01', 'PLACEBO']
 
-doses=['d1', 'd2','d3']
-dose_dict={'d1':'FirstDose','d2':'SecondDose', 'd3':'ThirdDose'}
-day_list=[90,180,270,360]
 
-# Compute days till death (dtd) and convert to int32. do for each dose.
-# also create count for each dose
-# Original code: 
-#   data['dtd'] = (data['DateOfDeath'] - data['Date_FirstDose']).dt.days.astype('Int32')
-for d in doses:
-    data['dt'+d] = (data['DateOfDeath'] - data['Date_'+dose_dict[d]]).dt.days.astype('Int32')
-    data['Count'+d] = data['Date_'+dose_dict[d]].notna().astype(int)  # Count for each dose
+    #  Drop rows without a first dose. We need to count everyone who got a dose, dead or alive
+    data = data.dropna(subset=['Date_FirstDose'])
 
-# Compute the Died_xxdx fields using the dtdx column
-# make sure that x >=0  so that people can't be vaccinated after they die
-for d in doses:
-    for day in day_list:
-        data['Died_'+str(day)+d] = data['dt'+d].apply(lambda x: 1 if pd.notna(x) and x >= 0 and x <= day else 0)
+    doses=['d1', 'd2','d3']
+    dose_dict={'d1':'FirstDose','d2':'SecondDose', 'd3':'ThirdDose'}
+    day_list=[90,180,270,360]
 
-# effectively creates lines like these
-# data['Died_180d1'] = data['dtd1'].apply(lambda x: 1 if pd.notna(x) and x <= 180 else 0)
+    # Compute days till death (dtd) and convert to int32. do for each dose.
+    # also create count for each dose
+    # Original code: 
+    #   data['dtd'] = (data['DateOfDeath'] - data['Date_FirstDose']).dt.days.astype('Int32')
+    for d in doses:
+        data['dt'+d] = (data['DateOfDeath'] - data['Date_'+dose_dict[d]]).dt.days.astype('Int32')
+        data['Count'+d] = data['Date_'+dose_dict[d]].notna().astype(int)  # Count for each dose
 
-# groupby only summarizes fields with values so ensure that the Code fields have a value "NONE"
-VaccineCode_fields=['VaccineCode_SecondDose', 'VaccineCode_ThirdDose']
-data[VaccineCode_fields] = data[VaccineCode_fields].fillna('NONE')
+    # Compute the Died_xxdx fields using the dtdx column
+    # make sure that x >=0  so that people can't be vaccinated after they die
+    for d in doses:
+        for day in day_list:
+            data['Died_'+str(day)+d] = data['dt'+d].apply(lambda x: 1 if pd.notna(x) and x >= 0 and x <= day else 0)
 
-# Perform group_by with aggregation
-summary_df = data.groupby(index_fields)[value_fields].sum().reset_index()
+    # effectively creates lines like these
+    # data['Died_180d1'] = data['dtd1'].apply(lambda x: 1 if pd.notna(x) and x <= 180 else 0)
 
-# now modify the labels to be more user friendly
-from mfg_codes import MFG_DICT
+    # groupby only summarizes fields with values so ensure that the Code fields have a value "NONE"
+    VaccineCode_fields=['VaccineCode_SecondDose', 'VaccineCode_ThirdDose']
+    data[VaccineCode_fields] = data[VaccineCode_fields].fillna('NONE')
 
-# Transform VaccineCode_xxxDose using the dictionary so have friendly names if the name is found in the dictionary lookup
-# if there is no match in the dictionary, leave the entry untouched (hence the .fillna to fill with original value)
-for d in doses:
-    summary_df['VaccineCode_'+dose_dict[d]] = summary_df['VaccineCode_'+dose_dict[d]].map(MFG_DICT) 
+    # Perform group_by with aggregation
+    summary_df = data.groupby(index_fields)[value_fields].sum().reset_index()
 
-# Write the summary DataFrame to a CSV file
-summary_df.to_csv(output_file, index=False)
+    # now modify the labels to be more user friendly
+    from mfg_codes import MFG_DICT
 
-print(f"Summary file has been written to {output_file}.")
+    # Transform VaccineCode_xxxDose using the dictionary so have friendly names if the name is found in the dictionary lookup
+    # if there is no match in the dictionary, leave the entry untouched (hence the .fillna to fill with original value)
+    for d in doses:
+        summary_df['VaccineCode_'+dose_dict[d]] = summary_df['VaccineCode_'+dose_dict[d]].map(MFG_DICT) 
+
+    # Write the summary DataFrame to a CSV file
+    summary_df.to_csv(output_file, index=False)
+
+    print(f"Summary file has been written to {output_file}.")
+
+
+import sys
+
+# Check for command-line arguments
+if len(sys.argv) != 3:
+    print("Usage: python script.py <source_file> <output_file>")
+    sys.exit(1)
+
+# Command-line arguments
+data_file = sys.argv[1]
+output_file = sys.argv[2]
+
+main(data_file, output_file)

@@ -20,8 +20,16 @@ time_series_files=$(datadir)/ts_*
 full_matrix=$(datadir)/full_matrix.csv
 time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt 
 
-# scripts
+# for vax_24
+vax_24_source=$(datadir)/vax_24.csv
+# vax_24_source=$(datadir)/sample.csv  # for testing
+vax_24_summary=$(datadir)/vax_24_summary.csv
+
+# scripts so if change the script, it will remake
 vax.py=vax.py
+vax_24.py=vax_24.py
+
+vax_24_files=$(vax_24_summary) # output files
 
 # vax_N.csv files; just need to list the last one because the program remakes all of them
 # so if the last one is there, we should be good to go
@@ -34,7 +42,7 @@ comorbidity=$(datadir)/comorbidity.csv
 
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
 # vax target will meke the vax1.csv, etc files
-all: time-series death-rates analysis time-series-all comorbidity vax
+all: time-series death-rates analysis time-series-all comorbidity vax vax_24
 	@echo "All done!"
 
 download:
@@ -50,8 +58,16 @@ $(time_series_all_files): $(record_file)
 	@echo "Time series analysis for all records"
 	@python buckets.py $(record_file) $(datadir)/ts_all
 
+# vax_24 stuff
+vax_24: $(vax_24_files) 
 
-# these are the ultimate csv files suitable for pivot table analysis
+# if source files are newer, or script is newer, make the summary file
+$(vax_24_files): $(vax_24_source) $(vax_24.py)
+	@echo "Making the vax_24 summary file `date`"
+	@python $(vax_24.py) $(vax_24_source) $(vax_24_summary)
+	@echo "Finished at `date`"
+
+# vax.py are the ultimate csv files suitable for pivot table analysis for the FOIA
 vax: $(vax_files) $(vax.py)
 
 $(vax_files): $(source_file) $(vax.py)
