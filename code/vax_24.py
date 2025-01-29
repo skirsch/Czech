@@ -54,7 +54,9 @@ def main(data_file, output_file):
 
     # Define the index and value fields
     index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'VaccineCode_SecondDose', 'VaccineCode_ThirdDose', 'Date_FirstDose', 'Infection', 'DCCI']
-    value_fields = ['Countd1', 'Died_90d1', 'Died_180d1', 'Died_270d1', 'Died_360d1', 
+    # list here the ones to output even though all are generated for all 3 doses
+    value_fields = ['Countd1', 'Died_30d1', 'Died_60d1', 'Died_90d1', 'Died_180d1', 'Died_270d1', 'Died_360d1',
+                    'Died_450d1', 'Died_540d1', 'Died_630d1', 'Died_720d1', 
                     'Countd2', 'Died_90d2', 'Died_180d2', 'Died_270d2', 'Died_360d2', 
                     'Countd3', 'Died_90d3', 'Died_180d3', 'Died_270d3', 'Died_360d3',
                     'died_in_NCmonth_2021', 'died_in_NCmonth_2022']  # this is set if the person died in a low COVID month
@@ -99,7 +101,8 @@ def main(data_file, output_file):
 
     doses=['d1', 'd2','d3']
     dose_dict={'d1':'FirstDose','d2':'SecondDose', 'd3':'ThirdDose'}
-    day_list=[30, 60, 90,180,270,360,450,540,630,720 ]
+    # generates all these but outputs only those items listed above in value_fields
+    day_list=[30, 60, 90,180,270,360,450,540,630,720]  
 
     # Compute days till death (dtd) and convert to int32. do for each dose.
     # also create count for each dose
