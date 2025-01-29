@@ -3,6 +3,7 @@
 #     wget https://data.mzcr.cz/data/distribuce/402/Otevrena-data-NR-26-30-COVID-19-prehled-populace-2024-01.csv
 # 2. rename the datafile to vax_24.csv and put in the data directory
 # 3. cd code; make vax_24
+# this creates vax_24_summary.csv in the data directory
 
 
 # new vax record level data released in Nov 2024
@@ -27,9 +28,9 @@
 # data.dtypes() to print out datatypes
 import pandas as pd
 
-data_file='../data/CR_24.csv'
-data_file='../data/sample.csv'
-output_file = '../data/CR-24_summary.csv'
+data_file='../data/vax_24.csv'
+# data_file='../data/sample.csv'
+output_file = '../data/vax_24_summary.csv'
 
 
 def main(data_file, output_file):
