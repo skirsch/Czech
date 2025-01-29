@@ -1,3 +1,10 @@
+# Steps:
+# 1. Download the datafile listed below:
+#     wget https://data.mzcr.cz/data/distribuce/402/Otevrena-data-NR-26-30-COVID-19-prehled-populace-2024-01.csv
+# 2. rename the datafile to vax_24.csv and put in the data directory
+# 3. cd code; make vax_24
+
+
 # new vax record level data released in Nov 2024
 # Hence the filename vax_24.py for the analysis of the 2024 Czech Republic data
 
@@ -20,7 +27,7 @@
 # data.dtypes() to print out datatypes
 import pandas as pd
 
-data_file='../data/CR=24.csv'
+data_file='../data/CR_24.csv'
 data_file='../data/sample.csv'
 output_file = '../data/CR-24_summary.csv'
 
@@ -71,11 +78,16 @@ def main(data_file, output_file):
     # and VaccineCode_FirstDose to 2022 to avoid the effect where in 2021, people more 
     # likely to die or be vaccined, so gets around the strong pull of the vaccine for all 
     # alive people.
+
+
+    # unvaxxed alive on Jan 1, 2022 and if no dose dates and EITHER you died after 2022 *OR* you didn't die at all.
+    # this avoids picking people who were unvaxxed because they died before they could get their vaccine
+    # which artificially increases deaths in the unvaccinated (think EVERYONE wanted to be vaxxed and you only didn't get 
+    # vaxxed if you died.)
     data.loc[
-        data[['Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose', 'Date_FourthDose']].isna().all(axis=1) &
-        (data['DateOfDeath'] >= '2022-01-01'),
-        ['Date_FirstDose', 'VaccineCode_FirstDose']
-    ] = ['2022-01-01', 'PLACEBO']
+    data[['Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose', 'Date_FourthDose']].isna().all(axis=1) & 
+        (data['DateOfDeath'].fillna(pd.Timestamp('2099-01-01')) >= '2022-01-01'),
+        ['Date_FirstDose', 'VaccineCode_FirstDose']] = ['2022-01-01', 'PLACEBO']
 
     # Create 'died_in_NCmonth' column for deaths between May 30, 2021, and Oct 12, 2021 (inclusive)
     data['died_in_NCmonth_2021'] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
@@ -86,7 +98,7 @@ def main(data_file, output_file):
 
     doses=['d1', 'd2','d3']
     dose_dict={'d1':'FirstDose','d2':'SecondDose', 'd3':'ThirdDose'}
-    day_list=[90,180,270,360]
+    day_list=[30, 60, 90,180,270,360,450,540,630,720 ]
 
     # Compute days till death (dtd) and convert to int32. do for each dose.
     # also create count for each dose
