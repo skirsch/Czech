@@ -75,7 +75,9 @@ def main(data_file, output_file):
 
     # Convert dates from YYYY-WW format to pandas datetime format
     for col in ['Date_FirstDose', 'Date_SecondDose','Date_ThirdDose', 'DateOfDeath']:
-        data[col] = pd.to_datetime(data[col] + '-1', format='%Y-%W-%w', errors='coerce')
+        data[col] = pd.to_datetime(data[col] + '-1', format='%G-%V-%u', errors='coerce')
+    # %G-%V-%u because the Czech data uses ISO 8601 weeks
+    # format='%Y-%W-%w' was incorrect
 
     # For rows with no doses and death date >= 2022-01, set Date_FirstDose 
     # and VaccineCode_FirstDose to 2022 to avoid the effect where in 2021, people more 
