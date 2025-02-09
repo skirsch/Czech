@@ -4,20 +4,34 @@
 # 1a. Download the datafile listed below:
 #     wget https://data.mzcr.cz/data/distribuce/402/Otevrena-data-NR-26-30-COVID-19-prehled-populace-2024-01.csv
 # 2. rename the datafile to vax_24.csv and put in the data directory
-# 3. cd code; make vax_24
-# this creates vax_24_summary.csv in the data directory
+# 3. cd code; make ifr
+# this creates ifr.csv in the data directory
 
+# see vax_24.py for details
 
-# new vax record level data released in Nov 2024
-# Hence the filename vax_24.py for the analysis of the 2024 Czech Republic data
+# PURPOSE
+# The purpose of this program is just to compute the stats to do IFR calculation on the population REGARDLESS of vax status
+# both before they got their vaccine as well as after they got their vaccine
 
-# Data file: https://www.nzip.cz/data/2135-covid-19-prehled-populace
-#
-# written about here: https://smis-lab.cz/2024/11/07/dalsi-velka-datova-sada-uzis-zverejnena/
+# Hypothesis: regardless of age, after you've been vaccinated, your IFR goes up
+# IFR is defined as "died within 21 days after a COVID infection"
+# 
+# Index fields:
+# Infection:  1 or 0
+# Died within x weeks of infection:  
+# Died within x weeks of most recent vaccination: blank if didn't die  
+# Vaccine brand of first shot: 
+# YOB
+# Month and year of infection: date of positive test result
+# Number of vaccines: 0-N
 
-# Notes:
-# DCCI is non-zero only if infected
-# Date of death ranges from 2020-10 to 2024-41 (using wk number format)
+# all we need is the record count for the index fields.
+
+# Then from the dataset in excel, use pivot table to compute IFR of ENTIRE cohort in the months before the vaccine rollouts vs. after
+# The vaccination status also allows us to compute IFR of vaxxed and unvaxxed, but the meat of the analysis is the
+# BEFORE vs. AFTER IFR of the FULL cohort since that eliminates selection bias.
+# The reason for the vaccine breakout is simply to show people that immediately after vaccination the IFR's are different for the 
+# vaxxed and unvaxxed, but if the FULL COHORT IFR didn't drop, the vaccine didn't work: the IFR differences were a mirage.
 
 # all fields (in English)
 # ID,Infection,Gender,YearOfBirth,DateOfPositiveTest,DateOfResult,Recovered,Deceased,Symptom,TestType,Date_FirstDose,Date_SecondDose,Date_ThirdDose,Date_FourthDose,Date_FifthDose,Date_SixthDose,Date_SeventhDose,
@@ -32,7 +46,7 @@ import pandas as pd
 
 data_file='../data/vax_24.csv'
 # data_file='../data/sample.csv'
-output_file = '../data/vax_24_summary.csv'
+output_file = '../data/ifr.csv'
 
 
 def main(data_file, output_file):
