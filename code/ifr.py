@@ -55,7 +55,7 @@
 # VaccineCode_FirstDose,VaccineCode_SecondDose,VaccineCode_ThirdDose,VaccineCode_FourthDose,VaccineCode_FifthDose,VaccineCode_SixthDose,VaccineCode_SeventhDose,PrimaryCauseHospCOVID,bin_Hospitalization,min_Hospitalization,days_Hospitalization,max_Hospitalization,bin_ICU,min_ICU,days_ICU,max_ICU,bin_StandardWard,min_StandardWard,days_StandardWard,max_StandardWard,bin_Oxygen,min_Oxygen,days_Oxygen,max_Oxygen,bin_HFNO,min_HFNO,days_HFNO,max_HFNO,bin_MechanicalVentilation_ECMO,min_MechanicalVentilation_ECMO,
 # days_MechanicalVentilation_ECMO,max_MechanicalVentilation_ECMO,Mutation,DateOfDeath,Long_COVID,DCCI
 
-# data.dtypes() to print out datatypes
+# data.dtypes() to print out datatypes 
 import pandas as pd
 
 data_file='../data/vax_24.csv'
@@ -84,8 +84,9 @@ def main(data_file, output_file):
 
 
     # Define the index fields
-    index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'Date_COVID_death', 'DateOfPositiveTest', 'DateOfDeath']
-        
+    index_fields = ['YearOfBirth', 'VaccineCode_FirstDose',  'DateOfPositiveTest']
+    # And the value fields that I want to sum up so I can compute an IFR
+    value_fields= ['Date_COVID_death', 'DateOfDeath']    
 
     # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
     data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
@@ -115,11 +116,17 @@ def main(data_file, output_file):
 
     # groupby only summarizes fields with values so ensure that the Code fields have a value "NONE"
     # add date of positive test so can look at mortality of those without a positive test!
-    maybe_empty_fields=['VaccineCode_FirstDose', 'Date_COVID_death', 'DateOfDeath', 'DateOfPositiveTest']
+    # only fill fields in the index, not in value
+    maybe_empty_fields=['VaccineCode_FirstDose', 'DateOfPositiveTest']
     data[maybe_empty_fields] = data[maybe_empty_fields].fillna('NONE')
 
     # Perform group_by with aggregation. This does all the heavy lifting!
-    summary_df = data.groupby(index_fields).size().reset_index(name="Count")
+    # summary_df = data.groupby(index_fields).size().reset_index(name="Count")
+
+    # setting false allows this code to count dates and sum numeric columns 
+    # use sum() for adding numeric value fields
+    summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
+    summary_df['Count'] = data.groupby(index_fields).size().values
 
     
     # now modify the labels to be more user friendly
