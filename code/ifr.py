@@ -30,14 +30,6 @@
 # new index columns
 # Date of first vaccine dose:    (so can do survival )
 
-# new value columns (4 each w1, w2, w3, w4: prejan, alpha starting jan, delta, omicron)
-# alive: is 1 if alive at start of wave; else zero, so 1 1 0 0
-# ACMdied:  is 1 if dead in variant; else zero (so just one column has 1)
-# COVIDdied: like ACM but for COVID. If infected in period and  Date_COVID_death is not blank (so just one column has 1)
-# vaxxed: 1 if vaxxed in or before the variant, so 0 1 1 1 
-# boosted: 1 if boosted in or before the variant, so 0 9 1 1 
-# infected: 1 if infected in THAT variant; else 0 so 1 column has 1
-
 
 
 
@@ -82,24 +74,38 @@ data_file='../data/vax_24.csv'
 data_file='../data/vax_24_head20k.csv' # for debug
 output_file = '../data/ifr.csv'
 
-# from collections import namedtuple
-# Interval = namedtuple('Interval', ['start', 'end'])
-# w1=Interval(start=pd.date_range, end=2)
-# print (w1.start)
+from collections import namedtuple
+Interval = namedtuple('Interval', ['start', 'end'])
+
+def date_range(first, last):
+     Interval()
 
 # define the five waves for CR including w3 for a non-COVID wave
-w1=pd.date_range('2020-09-09', '2020-12-31') # pre-vaccine COVID wave
-w2=pd.date_range('2021-01-01', '2021-05-29') # vax rollout COVID wave
-w3=pd.date_range('2021-05-30', '2021-09-26') # no-covid wave
-w4=pd.date_range('2021-09-27', '2021-12-31') # delta
-w5=pd.date_range('2022-01-01', '2022-05-23') # omicron
+w1=date_range('2020-09-09', '2020-12-31') # pre-vaccine COVID wave
+w2=date_range('2021-01-01', '2021-05-29') # vax rollout COVID wave
+w3=date_range('2021-05-30', '2021-09-26') # no-covid wave
+w4=date_range('2021-09-27', '2021-12-31') # delta
+w5=date_range('2022-01-01', '2022-05-23') # omicron
 
 waves=[w1, w2, w3, w4, w5]
+wave_name=['w1', 'w2', 'w3', 'w4']
+ # Define the index fields
+index_fields = ['YearOfBirth', 'VaccineCode_FirstDose',  'DateOfPositiveTest']
+# And the value fields that I want to sum up so I can compute an IFR
+# the first two will create # COVID deaths and # of ACM deaths for people in the cohort
+# value_fields= ['Date_COVID_death', 'DateOfDeath']    
+# this is the core list. I'll append _w1 etc to every one of these items
 
+# just for reference. I have to process each field manually 
+
+
+import itertools
 
 def main(data_file, output_file):
     # Load the CSV file into a DataFrame. 
     # I have plenty of memory so let pandas know that to avoid type errors on dose 6 which happens later in the file
+    
+
     data = pd.read_csv(data_file, low_memory=False)
 
     # rename the columns in English
@@ -115,13 +121,36 @@ def main(data_file, output_file):
         'min_MechanicalVentilation_ECMO', 'days_MechanicalVentilation_ECMO', 'max_MechanicalVentilation_ECMO',
         'Mutation', 'DateOfDeath', 'Long_COVID', 'DCCI']
 
-# date of most recent infection: 
+    # date of most recent infection is in the table
+    # 
+    # Now iterate over waves to define each column
+    # 
+    # new value columns (4 each w1, w2, w3, w4: prejan, alpha starting jan, delta, omicron)
+    # alive: is 1 if alive at start of wave; else zero, so 1 1 0 0
+    # ACMdied:  is 1 if dead in variant; else zero (so just one column has 1)
+    # COVIDdied: like ACM but for COVID. If infected in period and  Date_COVID_death is not blank (so just one column has 1)
+    # vaxxed: 1 if vaxxed in or before the variant, so 0 1 1 1 
+    # boosted: 1 if boosted in or before the variant, so 0 0 1 1 
+    # infected: 1 if infected in THAT variant; else 0 so 1 column has 1
+    alive='alive'
+    ACMdied='ACM_died'
+    COVIDdied="COVID_died"
+    vaxxed="vaxxed"
+    boosted="boosted"
+    infected="infected"
+    value_fields=[]
 
-
-    # Define the index fields
-    index_fields = ['YearOfBirth', 'VaccineCode_FirstDose',  'DateOfPositiveTest']
-    # And the value fields that I want to sum up so I can compute an IFR
-    value_fields= ['Date_COVID_death', 'DateOfDeath']    
+    # generate the value fields to be summed
+    for w,w_name in itertools.zip(waves,wave_name):
+            data[alive+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and x in w else 0)
+            data[ACMdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
+            data[COVIDdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
+            data[vaxxed+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
+            data[boosted+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
+            data[infected+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)  
+            
+            # append to the list of value fields
+            value_fields.extend([alive+w_name, COVIDdied+w_name, vaxxed+w_name, boosted+w_name, infected+w_name])
 
     # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
     data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
@@ -158,10 +187,13 @@ def main(data_file, output_file):
     # Perform group_by with aggregation. This does all the heavy lifting!
     # summary_df = data.groupby(index_fields).size().reset_index(name="Count")
 
+    # this line does all the work to sum the count fie
     # setting false allows this code to count dates and sum numeric columns 
     # use sum() for adding numeric value fields
-    summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
-    summary_df['Count'] = data.groupby(index_fields).size().values
+    # this is when we were counting date value_fields= ['Date_COVID_death', 'DateOfDeath']    
+    # summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
+    summary_df = data.groupby(index_fields)[value_fields].sum().reset_index()     
+    summary_df['Count'] = data.groupby(index_fields).size().values   # append a count column
 
     
     # now modify the labels to be more user friendly
