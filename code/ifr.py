@@ -82,8 +82,20 @@ data_file='../data/vax_24.csv'
 data_file='../data/vax_24_head20k.csv' # for debug
 output_file = '../data/ifr.csv'
 
-waves=['w1', 'w2','w3', 'w4']
-wave_dict={'w1':'FirstDose','d2':'SecondDose', 'd3':'ThirdDose'}
+# from collections import namedtuple
+# Interval = namedtuple('Interval', ['start', 'end'])
+# w1=Interval(start=pd.date_range, end=2)
+# print (w1.start)
+
+# define the five waves for CR including w3 for a non-COVID wave
+w1=pd.date_range('2020-09-09', '2020-12-31') # pre-vaccine COVID wave
+w2=pd.date_range('2021-01-01', '2021-05-29') # vax rollout COVID wave
+w3=pd.date_range('2021-05-30', '2021-09-26') # no-covid wave
+w4=pd.date_range('2021-05-30', '2021-09-26') # delta
+w5=pd.date_range('2021-05-30', '2021-09-26') # omicron
+
+waves=[w1, w2, w3, w4, w5]
+
 
 def main(data_file, output_file):
     # Load the CSV file into a DataFrame. 
