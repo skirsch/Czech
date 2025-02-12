@@ -7,14 +7,15 @@
 # 3. cd code; make ifr
 # this creates ifr.csv in the data directory
 
-# see vax_24.py for details
+# see vax_24.py for details about the database
 
 # PURPOSE
 # The purpose of this program is just to compute the stats to do IFR calculation on the population REGARDLESS of vax status
 # both before they got their vaccine as well as after they got their vaccine
 
-# Hypothesis: regardless of age, after you've been vaccinated, your IFR goes up
-# IFR is defined as "died within 21 days after a COVID infection"
+# Hypothesis: IFR higher in Q2 vs. Q1 due to slower rollout in CR. Vaccines increased IFR
+# For survival among age cohort, we won't see unvaxxed higher slope in COVID waves. I think the lines will get closer over time (unvaxxed will start with steeper slope).
+
 # 
 # Index fields:
 
@@ -22,6 +23,19 @@
 # COVID death date (Date_COVID_death column): date or blank 
 # Vaccine brand of first shot: 
 # YOB: 
+
+# new index columns
+# Date of first vaccine dose:    (so can do survival )
+
+# new value columns (4 each w1, w2, w3, w4: prejan, alpha starting jan, delta, omicron)
+# alive: is 1 if alive at start of wave; else zero, so 1 1 0 0
+# ACMdied:  is 1 if dead in variant; else zero (so just one column has 1)
+# COVIDdied: like ACM but for COVID. If infected in period and  Date_COVID_death is not blank (so just one column has 1)
+# vaxxed: 1 if vaxxed in or before the variant, so 0 1 1 1 
+# boosted: 1 if boosted in or before the variant, so 0 9 1 1 
+# infected: 1 if infected in THAT variant; else 0 so 1 column has 1
+
+
 
 
 # do not need for now
@@ -51,8 +65,11 @@
 # "bin_UPV_ECMO","min_UPV_ECMO","dni_UPV_ECMO","max_UPV_ECMO","Mutace","DatumUmrtiLPZ","Long_COVID","DCCI"
 
 # all fields (in English)
-# ID,Infection,Gender,YearOfBirth,DateOfPositiveTest,DateOfResult,Recovered,Date_COVID_death,Symptom,TestType,Date_FirstDose,Date_SecondDose,Date_ThirdDose,Date_FourthDose,Date_FifthDose,Date_SixthDose,Date_SeventhDose,
-# VaccineCode_FirstDose,VaccineCode_SecondDose,VaccineCode_ThirdDose,VaccineCode_FourthDose,VaccineCode_FifthDose,VaccineCode_SixthDose,VaccineCode_SeventhDose,PrimaryCauseHospCOVID,bin_Hospitalization,min_Hospitalization,days_Hospitalization,max_Hospitalization,bin_ICU,min_ICU,days_ICU,max_ICU,bin_StandardWard,min_StandardWard,days_StandardWard,max_StandardWard,bin_Oxygen,min_Oxygen,days_Oxygen,max_Oxygen,bin_HFNO,min_HFNO,days_HFNO,max_HFNO,bin_MechanicalVentilation_ECMO,min_MechanicalVentilation_ECMO,
+# ID,Infection,Gender,YearOfBirth,DateOfPositiveTest,DateOfResult,Recovered,Date_COVID_death,
+# Symptom,TestType,Date_FirstDose,Date_SecondDose,Date_ThirdDose,Date_FourthDose,Date_FifthDose,Date_SixthDose,Date_SeventhDose,
+# VaccineCode_FirstDose,VaccineCode_SecondDose,VaccineCode_ThirdDose,VaccineCode_FourthDose,VaccineCode_FifthDose,VaccineCode_SixthDose,VaccineCode_SeventhDose,PrimaryCauseHospCOVID,bin_Hospitalization,
+# min_Hospitalization,days_Hospitalization,max_Hospitalization,bin_ICU,min_ICU,days_ICU,max_ICU,bin_StandardWard,min_StandardWard,days_StandardWard,max_StandardWard,bin_Oxygen,
+# min_Oxygen,days_Oxygen,max_Oxygen,bin_HFNO,min_HFNO,days_HFNO,max_HFNO,bin_MechanicalVentilation_ECMO,min_MechanicalVentilation_ECMO,
 # days_MechanicalVentilation_ECMO,max_MechanicalVentilation_ECMO,Mutation,DateOfDeath,Long_COVID,DCCI
 
 # data.dtypes() to print out datatypes 
