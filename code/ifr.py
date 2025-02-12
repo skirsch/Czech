@@ -91,8 +91,8 @@ output_file = '../data/ifr.csv'
 w1=pd.date_range('2020-09-09', '2020-12-31') # pre-vaccine COVID wave
 w2=pd.date_range('2021-01-01', '2021-05-29') # vax rollout COVID wave
 w3=pd.date_range('2021-05-30', '2021-09-26') # no-covid wave
-w4=pd.date_range('2021-05-30', '2021-09-26') # delta
-w5=pd.date_range('2021-05-30', '2021-09-26') # omicron
+w4=pd.date_range('2021-09-27', '2021-12-31') # delta
+w5=pd.date_range('2022-01-01', '2022-05-23') # omicron
 
 waves=[w1, w2, w3, w4, w5]
 
