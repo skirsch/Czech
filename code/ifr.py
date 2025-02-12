@@ -1,3 +1,6 @@
+# This code is derived from vax_24.py which analyses the official Nov 2024 Czechia data
+# 
+# 
 # Steps:
 # 1.  Read about the dataset here:
 #     https://www.nzip.cz/data/2135-covid-19-prehled-populace which describes the fields
@@ -78,6 +81,9 @@ import pandas as pd
 data_file='../data/vax_24.csv'
 data_file='../data/vax_24_head20k.csv' # for debug
 output_file = '../data/ifr.csv'
+
+waves=['w1', 'w2','w3', 'w4']
+wave_dict={'w1':'FirstDose','d2':'SecondDose', 'd3':'ThirdDose'}
 
 def main(data_file, output_file):
     # Load the CSV file into a DataFrame. 

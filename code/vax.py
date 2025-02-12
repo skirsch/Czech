@@ -1,4 +1,9 @@
 '''
+THis uses the FOIA dataset.
+
+See vax_24.py for the code using the Nov 2024 release of the data
+
+
 This script makes all the vax_N.csv analysis files
 
 Analyze the CZ records file which is vaccine record level data.

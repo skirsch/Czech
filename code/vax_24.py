@@ -1,3 +1,7 @@
+# This supercedes vax.py and is like vax.py, but using the Nov 24 czech data.
+# See ifr.py for the latest incantation.
+
+# 
 # Steps:
 # 1.  Read about the dataset here:
 #     https://www.nzip.cz/data/2135-covid-19-prehled-populace which describes the fields
@@ -93,8 +97,8 @@ def main(data_file, output_file):
     # vaxxed if you died.)
     data.loc[
     data[['Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose', 'Date_FourthDose']].isna().all(axis=1) & 
-        (data['DateOfDeath'].fillna(pd.Timestamp('2099-01-01')) > '2022-01-01'),
-        ['Date_FirstDose', 'VaccineCode_FirstDose']] = ['2022-01-01', 'PLACEBO']
+        (data['DateOfDeath'].fillna(pd.Timestamp('2099-01-01')) > pd.Timestamp('2022-01-01')),
+        ['Date_FirstDose', 'VaccineCode_FirstDose']] = [pd.Timestamp('2022-01-01'), 'PLACEBO']
 
     # Create 'died_in_NCmonth' column for deaths between May 30, 2021, and Oct 12, 2021 (inclusive)
     data['died_in_NCmonth_2021'] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)

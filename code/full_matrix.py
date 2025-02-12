@@ -1,6 +1,8 @@
 '''
 This produces vaerious time series analysis I thought would be useful.
 
+This is superceded by vax.py, vax_24.py, and ifr.py in that order of succession.
+
 These time series are simply 1 year mortality for given vaccine dose/brand combinations.
 
 What you really want to see is death per month for the next 12 months for each combination of date, dose, brand!
