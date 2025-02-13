@@ -16,6 +16,9 @@
 # The purpose of this program is just to compute the stats to do IFR calculation on the population REGARDLESS of vax status
 # both before they got their vaccine as well as after they got their vaccine
 
+# TO ANALYZE
+# Pivot table and drag all the value_fields to the "Values" section of the pivot
+
 # Hypothesis: IFR higher in Q2 vs. Q1 due to slower rollout in CR. Vaccines increased IFR
 # For survival among age cohort, we won't see unvaxxed higher slope in COVID waves. I think the lines will get closer over time (unvaxxed will start with steeper slope).
 
@@ -187,7 +190,7 @@ def main(data_file, output_file):
             data[infected+w_name] = data['DateOfPositiveTest'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # became infected in the variant
             
             # append to the list of value fields
-            value_fields.extend([alive+w_name, COVIDdied+w_name, vaxxed+w_name, boosted+w_name, infected+w_name])
+            value_fields.extend([alive+w_name, ACMdied+w_name, COVIDdied+w_name, vaxxed+w_name, boosted+w_name, infected+w_name])
 
 
 
