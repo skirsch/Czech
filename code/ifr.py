@@ -127,7 +127,7 @@ def main(data_file, output_file):
     # new value columns (4 each w1, w2, w3, w4: prejan, alpha starting jan, delta, omicron)
     # alive: is 1 if alive at start of wave; else zero, so 1 1 0 0
     # ACMdied:  is 1 if dead in variant; else zero (so just one column has 1)
-    # COVIDdied: like ACM but for COVID. If infected in period and  Date_COVID_death is not blank (so just one column has 1)
+    # COVIDdied: like ACM but for COVID. If died from COVID in the period
     # vaxxed: 1 if vaxxed in or before the variant, so 0 1 1 1 
     # boosted: 1 if boosted in or before the variant, so 0 0 1 1 
     # infected: 1 if infected in THAT variant; else 0 so 1 column has 1
@@ -143,10 +143,10 @@ def main(data_file, output_file):
     for w,w_name in itertools.zip(waves,wave_name):
             data[alive+w_name] = data['DateOfDeath'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
             data[ACMdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # died in variant
-            data[COVIDdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
-            data[vaxxed+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
-            data[boosted+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
-            data[infected+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)  
+            data[COVIDdied+w_name] = data['Date_COVID_death'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # COVID died in variant
+            data[vaxxed+w_name] = data['Date_FirstDose'].apply(lambda x: 1 if pd.notna(x) and x <= w.end else 0) # vaxxed in or before the  variant
+            data[boosted+w_name] = data['Date_ThirdDose'].apply(lambda x: 1 if pd.notna(x) and x <= w.end else 0) # boosted or before the  variant
+            data[infected+w_name] = data['DateOfPositiveTest'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # became infected in the variant
             
             # append to the list of value fields
             value_fields.extend([alive+w_name, COVIDdied+w_name, vaxxed+w_name, boosted+w_name, infected+w_name])
