@@ -93,7 +93,7 @@ w5=date_range('2022-01-01', '2022-05-23') # omicron
 waves=[w1, w2, w3, w4, w5]
 wave_name=['w1', 'w2', 'w3', 'w4']
  # Define the index fields
-index_fields = ['YearOfBirth', 'VaccineCode_FirstDose',  'DateOfPositiveTest']
+index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'VaccineCode_ThirdDose', 'DateOfPositiveTest']
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
 # value_fields= ['Date_COVID_death', 'DateOfDeath']    
@@ -207,7 +207,7 @@ def main(data_file, output_file):
     from mfg_codes import MFG_DICT
 
     # Transform VaccineCode_xxxDose using the dictionary so have friendly names.
-    doses=['d1']
+    doses=['d1', 'd3']
     dose_dict={'d1':'FirstDose','d2':'SecondDose', 'd3':'ThirdDose'}
     
     for d in doses:
