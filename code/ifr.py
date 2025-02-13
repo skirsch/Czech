@@ -78,7 +78,7 @@ from collections import namedtuple
 Interval = namedtuple('Interval', ['start', 'end'])
 
 def date_range(start, end):
-     return Interval(pd.Timestamp(start),pd.Timestamp(end))
+     return Interval(pd.to_datetime(start).date(),pd.to_datetime(end).date())
 
 # define the five waves for CR including w3 for a non-COVID wave
 w1=date_range('2020-09-09', '2020-12-31') # pre-vaccine COVID wave
@@ -120,37 +120,6 @@ def main(data_file, output_file):
         'min_MechanicalVentilation_ECMO', 'days_MechanicalVentilation_ECMO', 'max_MechanicalVentilation_ECMO',
         'Mutation', 'DateOfDeath', 'Long_COVID', 'DCCI']
 
-    # date of most recent infection is in the table
-    # 
-    # Now iterate over waves to define each column
-    # 
-    # new value columns (4 each w1, w2, w3, w4: prejan, alpha starting jan, delta, omicron)
-    # alive: is 1 if alive at start of wave; else zero, so 1 1 0 0
-    # ACMdied:  is 1 if dead in variant; else zero (so just one column has 1)
-    # COVIDdied: like ACM but for COVID. If died from COVID in the period
-    # vaxxed: 1 if vaxxed in or before the variant, so 0 1 1 1 
-    # boosted: 1 if boosted in or before the variant, so 0 0 1 1 
-    # infected: 1 if infected in THAT variant; else 0 so 1 column has 1
-    alive='alive'
-    ACMdied='ACM_died'
-    COVIDdied="COVID_died"
-    vaxxed="vaxxed"
-    boosted="boosted"
-    infected="infected"
-    value_fields=[]
-
-    # generate the value fields to be summed   ... and w.start <=x <=w.end     is code for in wave 
-    for w,w_name in itertools.zip(waves,wave_name):
-            data[alive+w_name] = data['DateOfDeath'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
-            data[ACMdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # died in variant
-            data[COVIDdied+w_name] = data['Date_COVID_death'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # COVID died in variant
-            data[vaxxed+w_name] = data['Date_FirstDose'].apply(lambda x: 1 if pd.notna(x) and x <= w.end else 0) # vaxxed in or before the  variant
-            data[boosted+w_name] = data['Date_ThirdDose'].apply(lambda x: 1 if pd.notna(x) and x <= w.end else 0) # boosted or before the  variant
-            data[infected+w_name] = data['DateOfPositiveTest'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # became infected in the variant
-            
-            # append to the list of value fields
-            value_fields.extend([alive+w_name, COVIDdied+w_name, vaxxed+w_name, boosted+w_name, infected+w_name])
-
     # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
     data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
 
@@ -164,7 +133,7 @@ def main(data_file, output_file):
     # data['Infection'] = data['Infection'].fillna(0).astype('Int32')
 
     # Convert dates from YYYY-WW format to pandas datetime format
-    for col in ['Date_COVID_death', 'DateOfPositiveTest', 'DateOfDeath']:
+    for col in ['Date_COVID_death', 'DateOfPositiveTest', 'DateOfDeath', 'Date_FirstDose', 'Date_ThirdDose']:
         data[col] = pd.to_datetime(data[col] + '-1', format='%G-%V-%u', errors='coerce').dt.date
     # the dt.date will remove the time part of the date so things are cleaner. The  ISO format adds the time.
     # %G-%V-%u because the Czech data uses ISO 8601 weeks
@@ -188,13 +157,48 @@ def main(data_file, output_file):
     # Perform group_by with aggregation. This does all the heavy lifting!
     # summary_df = data.groupby(index_fields).size().reset_index(name="Count")
 
+
+    # date of most recent infection is in the table
+    # 
+    # Now iterate over waves to define each column
+    # 
+    # new value columns (4 each w1, w2, w3, w4: prejan, alpha starting jan, delta, omicron)
+    # alive: is 1 if alive at start of wave; else zero, so 1 1 0 0
+    # ACMdied:  is 1 if dead in variant; else zero (so just one column has 1)
+    # COVIDdied: like ACM but for COVID. If died from COVID in the period
+    # vaxxed: 1 if vaxxed in or before the variant, so 0 1 1 1 
+    # boosted: 1 if boosted in or before the variant, so 0 0 1 1 
+    # infected: 1 if infected in THAT variant; else 0 so 1 column has 1
+    alive='alive'
+    ACMdied='ACM_died'
+    COVIDdied="COVID_died"
+    vaxxed="vaxxed"
+    boosted="boosted"
+    infected="infected"
+    value_fields=[]
+
+    # generate the value fields to be summed   ... and w.start <=x <=w.end     is code for in wave 
+    for w,w_name in zip(waves,wave_name):
+            data[alive+w_name] = data['DateOfDeath'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
+            data[ACMdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # died in variant
+            data[COVIDdied+w_name] = data['Date_COVID_death'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # COVID died in variant
+            data[vaxxed+w_name] = data['Date_FirstDose'].apply(lambda x: 1 if pd.notna(x) and x <= w.end else 0) # vaxxed in or before the  variant
+            data[boosted+w_name] = data['Date_ThirdDose'].apply(lambda x: 1 if pd.notna(x) and x <= w.end else 0) # boosted or before the  variant
+            data[infected+w_name] = data['DateOfPositiveTest'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # became infected in the variant
+            
+            # append to the list of value fields
+            value_fields.extend([alive+w_name, COVIDdied+w_name, vaxxed+w_name, boosted+w_name, infected+w_name])
+
+
+
     # this line does all the work 
     # setting dropna=false allows index entries to include blank (e.g, no vaccinated data) since otherwise those rows are dropped
     # use sum() for adding numeric value fields
     # this is when we were counting date value_fields= ['Date_COVID_death', 'DateOfDeath']    
     # summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
+    # make sure both have dropna=False!!
     summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()     
-    summary_df['Count'] = data.groupby(index_fields).size().values   # append a count column
+    summary_df['Count'] = data.groupby(index_fields, dropna=False).size().values   # append a count column
 
     # now modify the labels to be more user friendly. Will replace blank with blank
     from mfg_codes import MFG_DICT
