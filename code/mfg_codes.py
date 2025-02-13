@@ -6,8 +6,8 @@ JANN="JA"       #  412314 got shot 1
 NOVAVAX="NOVA"  #    5425 got shot 1 but only in 2022 so doesn't appear in Study 2. 14 died. MR of just 258, but there wasn't a full year to die.
 
 OTHER="OTHER"
-UNVAX="NONE"  # didn't get a shot for dose 1, 2, or 3 
-PLACEBO="PLACEBO" # unvaccinated so treat as placebo shot on Jan 1, 2022.
+UNVAX=""  # didn't get a shot for dose 1, 2, or 3 (make sure dropna=false on groupby); will replace blank with blank
+PLACEBO="PLACEBO" # unvaccinated so treat as placebo shot on Jan 1, 2022 or whatever date for the comparison
 
 # Define the range of allowable values
 R_MFG = [PFIZER, MODERNA, ASTRA, JANN, NOVAVAX, OTHER, UNVAX]

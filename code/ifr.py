@@ -77,8 +77,8 @@ output_file = '../data/ifr.csv'
 from collections import namedtuple
 Interval = namedtuple('Interval', ['start', 'end'])
 
-def date_range(first, last):
-     Interval()
+def date_range(start, end):
+     return Interval(pd.Timestamp(start),pd.Timestamp(end))
 
 # define the five waves for CR including w3 for a non-COVID wave
 w1=date_range('2020-09-09', '2020-12-31') # pre-vaccine COVID wave
@@ -103,8 +103,7 @@ import itertools
 
 def main(data_file, output_file):
     # Load the CSV file into a DataFrame. 
-    # I have plenty of memory so let pandas know that to avoid type errors on dose 6 which happens later in the file
-    
+    # I have plenty of memory so let pandas know that to avoid type errors on dose 6 which happens later in the fil
 
     data = pd.read_csv(data_file, low_memory=False)
 
@@ -140,10 +139,10 @@ def main(data_file, output_file):
     infected="infected"
     value_fields=[]
 
-    # generate the value fields to be summed
+    # generate the value fields to be summed   ... and w.start <=x <=w.end     is code for in wave 
     for w,w_name in itertools.zip(waves,wave_name):
-            data[alive+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and x in w else 0)
-            data[ACMdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
+            data[alive+w_name] = data['DateOfDeath'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
+            data[ACMdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # died in variant
             data[COVIDdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
             data[vaxxed+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
             data[boosted+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and pd.Timestamp('2021-05-30') <= x <= pd.Timestamp('2021-10-12') else 0)
@@ -178,25 +177,26 @@ def main(data_file, output_file):
     #  Drop rows without a first dose. We need to count everyone who got a dose, dead or alive. We gave unvaxxed people a "PLACEBO" does in Jan 2022.
     # data = data.dropna(subset=['Date_FirstDose'])
 
+    # 
     # groupby only summarizes fields with values so ensure that the Code fields have a value "NONE"
     # add date of positive test so can look at mortality of those without a positive test!
     # only fill fields in the index, not in value
-    maybe_empty_fields=['VaccineCode_FirstDose', 'DateOfPositiveTest']
-    data[maybe_empty_fields] = data[maybe_empty_fields].fillna('NONE')
+
+    # maybe_empty_fields=['VaccineCode_FirstDose', 'DateOfPositiveTest']
+    # data[maybe_empty_fields] = data[maybe_empty_fields].fillna('NONE')    
 
     # Perform group_by with aggregation. This does all the heavy lifting!
     # summary_df = data.groupby(index_fields).size().reset_index(name="Count")
 
-    # this line does all the work to sum the count fie
-    # setting false allows this code to count dates and sum numeric columns 
+    # this line does all the work 
+    # setting dropna=false allows index entries to include blank (e.g, no vaccinated data) since otherwise those rows are dropped
     # use sum() for adding numeric value fields
     # this is when we were counting date value_fields= ['Date_COVID_death', 'DateOfDeath']    
     # summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
-    summary_df = data.groupby(index_fields)[value_fields].sum().reset_index()     
+    summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()     
     summary_df['Count'] = data.groupby(index_fields).size().values   # append a count column
 
-    
-    # now modify the labels to be more user friendly
+    # now modify the labels to be more user friendly. Will replace blank with blank
     from mfg_codes import MFG_DICT
 
     # Transform VaccineCode_xxxDose using the dictionary so have friendly names.
@@ -207,7 +207,8 @@ def main(data_file, output_file):
         summary_df['VaccineCode_'+dose_dict[d]] = summary_df['VaccineCode_'+dose_dict[d]].map(MFG_DICT) 
 
     # Now switch back NONE to empty since we used NONE as a placeholder everywhere
-    summary_df.replace('NONE', '', inplace=True)
+    # no need for this anymore since not using NONE
+    # summary_df.replace('NONE', '', inplace=True)
 
     # Write the summary DataFrame to a CSV file
     summary_df.to_csv(output_file, index=False)
