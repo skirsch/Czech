@@ -26,7 +26,9 @@
 # YOB: 
 # boosted at time of infection: 0 or 1
 
-# 250*2*2*2*10*2
+# value fields
+# Count: number of records meeting that index
+# Note can use Infected=1 in pivot to look at number infected. Shorthand for using date
 
 # number of infections: 
 # too many rows if add these and I have that data in vax_24
@@ -63,9 +65,10 @@ output_file = '../data/cfr_by_week.csv'
 boosted='boosted_before_infected'
 vaxxed='vaxxed_before_infected'
 COVID_died='died_from_COVID'
+infected='infected'   # positive test is a date. Don't really need this but handy for doing sums in excel
  # Define the index fields
 index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfPositiveTest', 
-                boosted, vaxxed, COVID_died]   # these are fields we'll create after reading in the file
+                infected, boosted, vaxxed, COVID_died]   # these are fields we'll create after reading in the file
 
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
@@ -143,7 +146,7 @@ def main(data_file, output_file):
     data[boosted] = (data['Date_ThirdDose'] < data['DateOfPositiveTest']).astype(int)   # boosted before infected
     data[vaxxed] = (data['Date_FirstDose'] < data['DateOfPositiveTest']).astype(int)  # vaxxed before infected
     data[COVID_died] = pd.notna(data['Date_COVID_death']).astype(int)                           # died from COVID infection 
-
+    data[infected] = pd.notna(data['DateOfPositiveTest']).astype(int)                           # died from COVID infection 
 
     # this line does all the work 
     # setting dropna=false allows index entries to include blank (e.g, no vaccinated data) since otherwise those rows are dropped
