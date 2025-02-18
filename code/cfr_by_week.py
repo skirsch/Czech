@@ -137,14 +137,16 @@ def main(data_file, output_file):
 
 
     boosted='boosted_before_infected'
-    vaxxed="vaxxed_before_infected'
-    COVID_died="died_from_COVID'
+    vaxxed='vaxxed_before_infected'
+    COVID_died='died_from_COVID'
 
     # generate the three dervied fields
+    # (data['A'] > df['B']).astype(int)
+    # ata['Date_ThirdDose'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
 
-    data[boosted] = data['Date_ThirdDose'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
-    data[vaxxed] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # died in variant
-    data[COVID_died] = data['Date_COVID_death'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # COVID died in variant
+    data[boosted] = data['Date_ThirdDose']<data['DateOfPositiveTest'].astype(int)   # boosted before infected
+    data[vaxxed] = data['DateOf_FirstDose'].data['DateOfPositiveTest'].astype(int)  # vaxxed before infected
+    data[COVID_died] = pd.notna(data['Date_COVID_death']).astype(int)                           # died from COVID infection 
 
 
     # this line does all the work 
@@ -159,7 +161,7 @@ def main(data_file, output_file):
     from mfg_codes import MFG_DICT
 
     # Transform VaccineCode_xxxDose using the dictionary so have friendly names.
-    doses=['d1', 'd3']
+    doses=['d1']
     dose_dict={'d1':'FirstDose','d2':'SecondDose', 'd3':'ThirdDose'}
     
     for d in doses:
