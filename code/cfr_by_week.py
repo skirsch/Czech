@@ -7,8 +7,9 @@
 # 1a. Download the datafile listed below:
 #     wget https://data.mzcr.cz/data/distribuce/402/Otevrena-data-NR-26-30-COVID-19-prehled-populace-2024-01.csv
 # 2. rename the datafile to vax_24.csv and put in the data directory
-# 3. cd code; make ifr
-# this creates ifr.csv in the data directory
+# 3. cd code; make cfr_by_week
+
+# this creates cfr_by_week.csv in the data directory
 
 # see vax_24.py for details about the database
 
@@ -16,11 +17,6 @@
 # The purpose of this program to summarize the stats per week to compute the CFR fo9r the time period.
 # Fortunately, the infected/deceased matches up infection date with death so we know # infected and died.
 
-# index fields are
-# count field is simply the count of that index. That's all we need.
-
-# compare with the cfr_by_wave I did earlier. This is far more flexible
-# 
 # Index fields:
 
 # date of most recent infection: 
@@ -61,26 +57,18 @@
 import pandas as pd
 
 data_file='../data/vax_24.csv'
-data_file='../data/vax_24_head20k.csv' # for debug
-output_file = '../data/ifr.csv'
+data_file='../data/sample.csv' # for debug
+output_file = '../data/cfr_by_week.csv'
 
-from collections import namedtuple
-Interval = namedtuple('Interval', ['start', 'end'])
+boosted='boosted_before_infected'
+vaxxed="vaxxed_before_infected'
+COVID_died="died_from_COVID'
 
-def date_range(start, end):
-     return Interval(pd.to_datetime(start).date(),pd.to_datetime(end).date())
 
-# define the five waves for CR including w3 for a non-COVID wave
-w1=date_range('2020-09-09', '2020-12-31') # pre-vaccine COVID wave
-w2=date_range('2021-01-01', '2021-05-29') # vax rollout COVID wave
-w3=date_range('2021-05-30', '2021-09-26') # no-covid wave
-w4=date_range('2021-09-27', '2021-12-31') # delta
-w5=date_range('2022-01-01', '2022-05-23') # omicron
-
-waves=[w1, w2, w3, w4, w5]
-wave_name=['w1', 'w2', 'w3', 'w4']
  # Define the index fields
-index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'VaccineCode_ThirdDose', 'DateOfPositiveTest']
+index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfPositiveTest', 
+                boosted, vaxxed, COVID_died]   # these are fields we'll create after reading in the file
+
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
 # value_fields= ['Date_COVID_death', 'DateOfDeath']    
@@ -148,37 +136,15 @@ def main(data_file, output_file):
     # summary_df = data.groupby(index_fields).size().reset_index(name="Count")
 
 
-    # date of most recent infection is in the table
-    # 
-    # Now iterate over waves to define each column
-    # 
-    # new value columns (4 each w1, w2, w3, w4: prejan, alpha starting jan, delta, omicron)
-    # alive: is 1 if alive at start of wave; else zero, so 1 1 0 0
-    # ACMdied:  is 1 if dead in variant; else zero (so just one column has 1)
-    # COVIDdied: like ACM but for COVID. If died from COVID in the period
-    # vaxxed: 1 if vaxxed in or before the variant, so 0 1 1 1 
-    # boosted: 1 if boosted in or before the variant, so 0 0 1 1 
-    # infected: 1 if infected in THAT variant; else 0 so 1 column has 1
-    alive='alive'
-    ACMdied='ACM_died'
-    COVIDdied="COVID_died"
-    vaxxed="vaxxed"
-    boosted="boosted"
-    infected="infected"
-    value_fields=[]
+    boosted='boosted_before_infected'
+    vaxxed="vaxxed_before_infected'
+    COVID_died="died_from_COVID'
 
-    # generate the value fields to be summed   ... and w.start <=x <=w.end     is code for in wave 
-    for w,w_name in zip(waves,wave_name):
-            data[alive+w_name] = data['DateOfDeath'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
-            data[ACMdied+w_name] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # died in variant
-            data[COVIDdied+w_name] = data['Date_COVID_death'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # COVID died in variant
-            data[vaxxed+w_name] = data['Date_FirstDose'].apply(lambda x: 1 if pd.notna(x) and x <= w.end else 0) # vaxxed in or before the  variant
-            data[boosted+w_name] = data['Date_ThirdDose'].apply(lambda x: 1 if pd.notna(x) and x <= w.end else 0) # boosted or before the  variant
-            data[infected+w_name] = data['DateOfPositiveTest'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # became infected in the variant
-            
-            # append to the list of value fields
-            value_fields.extend([alive+w_name, ACMdied+w_name, COVIDdied+w_name, vaxxed+w_name, boosted+w_name, infected+w_name])
+    # generate the three dervied fields
 
+    data[boosted] = data['Date_ThirdDose'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
+    data[vaxxed] = data['DateOfDeath'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # died in variant
+    data[COVID_died] = data['Date_COVID_death'].apply(lambda x: 1 if pd.notna(x) and w.start <= x <= w.end else 0) # COVID died in variant
 
 
     # this line does all the work 
@@ -187,9 +153,8 @@ def main(data_file, output_file):
     # this is when we were counting date value_fields= ['Date_COVID_death', 'DateOfDeath']    
     # summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
     # make sure both have dropna=False!!
-    summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()     
-    summary_df['Count'] = data.groupby(index_fields, dropna=False).size().values   # append a count column
-
+    summary_df = data.groupby(index_fields, dropna=False).size().reset_index(name="Count")   
+    
     # now modify the labels to be more user friendly. Will replace blank with blank
     from mfg_codes import MFG_DICT
 

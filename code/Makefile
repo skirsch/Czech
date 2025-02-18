@@ -22,21 +22,21 @@ time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt
 
 # for vax_24
 vax_24_source=$(datadir)/vax_24.csv
-# vax_24_source=$(datadir)/sample.csv # for debugging
+vax_24_source=$(datadir)/sample.csv # for debugging for vax_24 and cfr_by_week
 
 # vax_24_source=$(datadir)/sample.csv  # for testing
 vax_24_summary=$(datadir)/vax_24_summary.csv
 
-# for ifr
-ifr_summary=$(datadir)/ifr.csv
+# for cfr_by_week
+cfr_by_week_summary=$(datadir)/cfr_by_week.csv
 
 # list the script name so if change the code, it will remake
 vax.py=vax.py
 vax_24.py=vax_24.py
-ifr.py=ifr.py
+cfr_by_week.py=cfr_by_week.py
 
 vax_24_files=$(vax_24_summary) # output files
-ifr_files=$(ifr_summary)  # output file
+cfr_by_week_files=$(cfr_by_week_summary)  # output file
 
 # vax_N.csv files; just need to list the last one because the program remakes all of them
 # so if the last one is there, we should be good to go
@@ -49,7 +49,7 @@ comorbidity=$(datadir)/comorbidity.csv
 
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
 # vax target will meke the vax1.csv, etc files
-all: time-series death-rates analysis time-series-all comorbidity vax vax_24 ifr
+all: time-series death-rates analysis time-series-all comorbidity vax vax_24 cfr_by_week
 	@echo "All done!"
 
 download:
@@ -68,12 +68,13 @@ $(time_series_all_files): $(record_file)
 # vax_24 stuff
 vax_24: $(vax_24_files) 
 
-# ifr stuff
-ifr: $(ifr_files)
+# cfr_by_week stuff
+cfr_by_week: $(cfr_by_week_files)
 
-$(ifr_files): $(vax_24_source) $(ifr.py)
-	@echo "Making the ifr summary file `date`"
-	@python $(ifr.py) $(vax_24_source) $(ifr_summary)
+$(cfr_by_week_files): $(vax_24_source) $(cfr_by_week.py)
+    # make using the vax_24.csv file which can be swapped to sample.csv above
+	@echo "Making the cfr_by_week summary file `date`"
+	@python $(cfr_by_week.py) $(vax_24_source) $(cfr_by_week_summary)
 	@echo "Finished at `date`"
 
 # if source files are newer, or script is newer, make the summary file
