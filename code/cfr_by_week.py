@@ -20,11 +20,15 @@
 # Index fields:
 
 # date of most recent infection: 
-# Died or not from the infection: 0 or 1 (we need to compute this before the groupby)
 # Vaccinated at time of infection: 0 or 1 
 # Vaccine brand of first shot: 
 # YOB: 
 # boosted at time of infection: 0 or 1
+
+# value fields
+# Died or not from the infection: 0 or 1 (we need to compute this before the groupby)
+# infected: 0 or 1
+
 
 # value fields
 # Count: number of records meeting that index
@@ -68,7 +72,8 @@ COVID_died='died_from_COVID'
 infected='infected'   # positive test is a date. Don't really need this but handy for doing sums in excel
  # Define the index fields
 index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfPositiveTest', 
-                infected, boosted, vaxxed, COVID_died]   # these are fields we'll create after reading in the file
+                 boosted, vaxxed]   # these are fields we'll create after reading in the file
+value_fields= [infected, COVID_died]
 
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
@@ -143,8 +148,11 @@ def main(data_file, output_file):
     # (data['A'] > df['B']).astype(int)
     # ata['Date_ThirdDose'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
 
+    # index fields
     data[boosted] = (data['Date_ThirdDose'] < data['DateOfPositiveTest']).astype(int)   # boosted before infected
     data[vaxxed] = (data['Date_FirstDose'] < data['DateOfPositiveTest']).astype(int)  # vaxxed before infected
+
+    # these are the value fields we will sum
     data[COVID_died] = pd.notna(data['Date_COVID_death']).astype(int)                           # died from COVID infection 
     data[infected] = pd.notna(data['DateOfPositiveTest']).astype(int)                           # died from COVID infection 
 
@@ -154,7 +162,9 @@ def main(data_file, output_file):
     # this is when we were counting date value_fields= ['Date_COVID_death', 'DateOfDeath']    
     # summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
     # make sure both have dropna=False!!
-    summary_df = data.groupby(index_fields, dropna=False).size().reset_index(name="Count")   
+    summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()  
+    summary_df["Count"] = data.groupby(index_fields, dropna=False).size().values # add count
+ 
     
     # now modify the labels to be more user friendly. Will replace blank with blank
     from mfg_codes import MFG_DICT
