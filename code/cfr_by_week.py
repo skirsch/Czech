@@ -61,10 +61,8 @@ data_file='../data/sample.csv' # for debug
 output_file = '../data/cfr_by_week.csv'
 
 boosted='boosted_before_infected'
-vaxxed="vaxxed_before_infected'
-COVID_died="died_from_COVID'
-
-
+vaxxed='vaxxed_before_infected'
+COVID_died='died_from_COVID'
  # Define the index fields
 index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfPositiveTest', 
                 boosted, vaxxed, COVID_died]   # these are fields we'll create after reading in the file
@@ -136,16 +134,14 @@ def main(data_file, output_file):
     # summary_df = data.groupby(index_fields).size().reset_index(name="Count")
 
 
-    boosted='boosted_before_infected'
-    vaxxed='vaxxed_before_infected'
-    COVID_died='died_from_COVID'
+ 
 
     # generate the three dervied fields
     # (data['A'] > df['B']).astype(int)
     # ata['Date_ThirdDose'].apply(lambda x: 0 if pd.notna(x) and x >= w.start else 1) # 1 is alive at start of wave
 
-    data[boosted] = data['Date_ThirdDose']<data['DateOfPositiveTest'].astype(int)   # boosted before infected
-    data[vaxxed] = data['DateOf_FirstDose'].data['DateOfPositiveTest'].astype(int)  # vaxxed before infected
+    data[boosted] = (data['Date_ThirdDose'] < data['DateOfPositiveTest']).astype(int)   # boosted before infected
+    data[vaxxed] = (data['Date_FirstDose'] < data['DateOfPositiveTest']).astype(int)  # vaxxed before infected
     data[COVID_died] = pd.notna(data['Date_COVID_death']).astype(int)                           # died from COVID infection 
 
 
