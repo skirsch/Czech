@@ -70,10 +70,12 @@ boosted='boosted_before_infected'
 vaxxed='vaxxed_before_infected'
 COVID_died='died_from_COVID'
 infected='infected'   # positive test is a date. Don't really need this but handy for doing sums in excel
- # Define the index fields
+infected_and_vaxxed='infected_and_vaxxed'
+COVID_died_and_vaxxed='COVID_died_and_vaxxed'
+ # Define the index field and value fields
 index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfPositiveTest', 
                  boosted, vaxxed]   # these are fields we'll create after reading in the file
-value_fields= [infected, COVID_died]
+value_fields= [infected, COVID_died, infected_and_vaxxed, COVID_died_and_vaxxed]
 
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
@@ -153,9 +155,26 @@ def main(data_file, output_file):
     data[vaxxed] = (data['Date_FirstDose'] < data['DateOfPositiveTest']).astype(int)  # vaxxed before infected
 
     # these are the value fields we will sum
-    data[COVID_died] = pd.notna(data['Date_COVID_death']).astype(int)                           # died from COVID infection 
-    data[infected] = pd.notna(data['DateOfPositiveTest']).astype(int)                           # died from COVID infection 
+    data[COVID_died] = pd.notna(data['Date_COVID_death']).astype(int)   # died from COVID infection 
+    data[infected] = pd.notna(data['DateOfPositiveTest']).astype(int)   # got COVID infection 
 
+    date_vaxxed='Date_FirstDose'
+    # create fields so can see stats for infected and DIED after vaccination
+    # caution: vaccinated are healthier so this can be misleading unless you are comparing vaxed with vaxxed
+    # longitudinally
+    data[infected_and_vaxxed] = (
+        data[date_vaxxed].notna() & 
+        data['DateOfPositiveTest'].notna() & 
+        (data[date_vaxxed] <= data['DateOfPositiveTest'])
+        ).astype(int)
+
+    data[COVID_died_and_vaxxed] = (
+        data[date_vaxxed].notna() & 
+        data['Date_COVID_death'].notna() & 
+        (data[date_vaxxed] <= data['Date_COVID_death'])
+        ).astype(int)
+
+    
     # this line does all the work 
     # setting dropna=false allows index entries to include blank (e.g, no vaccinated data) since otherwise those rows are dropped
     # use sum() for adding numeric value fields
