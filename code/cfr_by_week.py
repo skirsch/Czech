@@ -179,18 +179,9 @@ def main(data_file, output_file):
         (data[date_vaxxed] <= data['Date_COVID_death'])
         ).astype(int)
     
-    # now do for the unvaxxed
-    data[infected_and_unvaxxed] = (
-        data[date_vaxxed].isna() &       # not vaxxed
-        data['DateOfPositiveTest'].notna()  # got postive test
-        ).astype(int)
-
-    data[COVID_died_and_unvaxxed] = (
-        data[date_vaxxed].isna() & # not vaxxed
-        data['Date_COVID_death'].notna() # died
-        ).astype(int)
-
-
+    # now do for the unvaxxed which is the complement
+    data[infected_and_unvaxxed]   = data[infected]-data[infected_and_vaxxed]
+    data[COVID_died_and_unvaxxed] = data[COVID_died]-data[COVID_died_and_vaxxed]
     
     # this line does all the work 
     # setting dropna=false allows index entries to include blank (e.g, no vaccinated data) since otherwise those rows are dropped
