@@ -182,12 +182,12 @@ def main(data_file, output_file):
     # now do for the unvaxxed
     data[infected_and_unvaxxed] = (
         data[date_vaxxed].isna() &       # not vaxxed
-        data['DateOfPositiveTest'].notna() &  # got postive test
+        data['DateOfPositiveTest'].notna()  # got postive test
         ).astype(int)
 
     data[COVID_died_and_unvaxxed] = (
         data[date_vaxxed].isna() & # not vaxxed
-        data['Date_COVID_death'].notna() & # died
+        data['Date_COVID_death'].notna() # died
         ).astype(int)
 
 
