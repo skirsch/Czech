@@ -72,10 +72,15 @@ COVID_died='died_from_COVID'
 infected='infected'   # positive test is a date. Don't really need this but handy for doing sums in excel
 infected_and_vaxxed='infected_and_vaxxed'
 COVID_died_and_vaxxed='COVID_died_and_vaxxed'
+infected_and_unvaxxed='infected_and_unvaxxed'
+COVID_died_and_unvaxxed='COVID_died_and_unvaxxed'
+
+
  # Define the index field and value fields
 index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfPositiveTest', 
                  boosted, vaxxed]   # these are fields we'll create after reading in the file
-value_fields= [infected, COVID_died, infected_and_vaxxed, COVID_died_and_vaxxed]
+value_fields= [infected, COVID_died, infected_and_vaxxed, COVID_died_and_vaxxed, 
+               infected_and_unvaxxed, COVID_died_and_unvaxxed]
 
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
@@ -173,6 +178,18 @@ def main(data_file, output_file):
         data['Date_COVID_death'].notna() & 
         (data[date_vaxxed] <= data['Date_COVID_death'])
         ).astype(int)
+    
+    # now do for the unvaxxed
+    data[infected_and_unvaxxed] = (
+        data[date_vaxxed].isna() &       # not vaxxed
+        data['DateOfPositiveTest'].notna() &  # got postive test
+        ).astype(int)
+
+    data[COVID_died_and_unvaxxed] = (
+        data[date_vaxxed].isna() & # not vaxxed
+        data['Date_COVID_death'].notna() & # died
+        ).astype(int)
+
 
     
     # this line does all the work 
