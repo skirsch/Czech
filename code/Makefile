@@ -22,13 +22,29 @@ time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt
 
 # for vax_24
 vax_24_source=$(datadir)/vax_24.csv
+# uncomment for testing
 # vax_24_source=$(datadir)/sample.csv # for debugging for vax_24 and cfr_by_week
 
-# vax_24_source=$(datadir)/sample.csv  # for testing
+
 vax_24_summary=$(datadir)/vax_24_summary.csv
 
 # for cfr_by_week
 cfr_by_week_summary=$(datadir)/cfr_by_week.csv
+
+################### for czech_ACM ######################
+czech_ACM_summary=$(datadir)/czech_ACM_summary.csv
+czech_ACM.py=czech_ACM.py
+czech_ACM_files=$(czech_ACM_summary)  # output file
+
+czech_ACM: $(czech_ACM_files)
+
+$(czech_ACM_files): $(vax_24_source) $(czech_ACM.py)
+    # make using the vax_24.csv file which can be swapped to sample.csv above
+	@echo "Making the czech_ACM summary file `date`"
+	@python $(czech_ACM.py) $(vax_24_source) $(czech_ACM_summary)
+	@echo "Finished at `date`"
+
+########### DONE
 
 # list the script name so if change the code, it will remake
 vax.py=vax.py
@@ -49,7 +65,7 @@ comorbidity=$(datadir)/comorbidity.csv
 
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
 # vax target will meke the vax1.csv, etc files
-all: time-series death-rates analysis time-series-all comorbidity vax vax_24 cfr_by_week
+all: time-series death-rates analysis time-series-all comorbidity vax vax_24 cfr_by_week czech_ACM
 	@echo "All done!"
 
 download:
