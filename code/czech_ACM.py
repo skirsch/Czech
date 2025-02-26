@@ -11,9 +11,10 @@
 # DOD:
 # Date of first vaccine dose:  
 # Vaccine brand of first shot: 
-
-# value fields
 # Died from COVID (1 if died from COVID)
+
+# value fields:
+# none, just the count
 
 # all we need is the record count for the index fields.
 
@@ -36,8 +37,8 @@ output_file = '../data/cfr_by_week.csv'
 COVID_died='died_from_COVID' # 1 or 0
 
  # Define the index field and value fields
-index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfDeath', 'Date_FirstDose']   
-value_fields= [COVID_died]
+index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfDeath', 'Date_FirstDose', COVID_died]   
+value_fields= []
 
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
@@ -150,8 +151,12 @@ def main(data_file, output_file):
     # this is when we were counting date value_fields= ['Date_COVID_death', 'DateOfDeath']    
     # summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
     # make sure both have dropna=False!!
-    summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()  
-    summary_df["Count"] = data.groupby(index_fields, dropna=False).size().values # add count
+
+    # summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()  
+    # summary_df["Count"] = data.groupby(index_fields, dropna=False).size().values # add count
+    
+    # no value fields so can make it a one-liner
+    summary_df = data.groupby(index_fields, dropna=False).size().reset_index(name="Count")  
  
     
     # now modify the labels to be more user friendly. Will replace blank with blank
