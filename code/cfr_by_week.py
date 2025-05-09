@@ -1,6 +1,7 @@
 # This code is derived from vax_24.py which analyses the official Nov 2024 Czechia data
-# 
-# 
+# The idea here is to use the infected date as the index, then count deceased both if vaccinated or unvaccinated.
+# infected and died_from_covid are the two key output columns
+#
 # Steps:
 # 1.  Read about the dataset here:
 #     https://www.nzip.cz/data/2135-covid-19-prehled-populace which describes the fields
@@ -159,7 +160,8 @@ def main(data_file, output_file):
     data[boosted] = (data['Date_ThirdDose'] < data['DateOfPositiveTest']).astype(int)   # boosted before infected
     data[vaxxed] = (data['Date_FirstDose'] < data['DateOfPositiveTest']).astype(int)  # vaxxed before infected
 
-    # these are the value fields we will sum
+    # these are the value fields we will sum. These are the two most important columns if we just care about population CFR
+    # so this =1 if not empty, otherwise is =0
     data[COVID_died] = pd.notna(data['Date_COVID_death']).astype(int)   # died from COVID infection 
     data[infected] = pd.notna(data['DateOfPositiveTest']).astype(int)   # got COVID infection 
 

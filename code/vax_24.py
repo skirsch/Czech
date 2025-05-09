@@ -1,5 +1,5 @@
 # This supercedes vax.py and is like vax.py, but using the Nov 24 czech data.
-# See ifr.py for the latest incantation.
+# See cfr_by_week.py for the latest incantation.
 
 # 
 # Steps:
