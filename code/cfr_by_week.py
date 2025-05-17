@@ -2,7 +2,7 @@
 # The idea here is to use the infected date as the index, then count deceased both if vaccinated or unvaccinated.
 # infected and died_from_covid are the two key output columns
 #
-# Steps:
+# Steps to make this.
 # 1.  Read about the dataset here:
 #     https://www.nzip.cz/data/2135-covid-19-prehled-populace which describes the fields
 # 1a. Download the datafile listed below:
@@ -23,7 +23,7 @@
 # date of most recent infection: 
 # Vaccinated at time of infection: 0 or 1 
 # Vaccine brand of first shot: 
-# YOB: 
+# YOB: year of birth
 # boosted at time of infection: 0 or 1
 
 # value fields
@@ -77,11 +77,7 @@ infected_and_unvaxxed='infected_and_unvaxxed'
 COVID_died_and_unvaxxed='COVID_died_and_unvaxxed'
 
 
- # Define the index field and value fields
-index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfPositiveTest', 
-                 boosted, vaxxed]   # these are fields we'll create after reading in the file
-value_fields= [infected, COVID_died, infected_and_vaxxed, COVID_died_and_vaxxed, 
-               infected_and_unvaxxed, COVID_died_and_unvaxxed]
+
 
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
@@ -113,7 +109,8 @@ def main(data_file, output_file):
         'Mutation', 'DateOfDeath', 'Long_COVID', 'DCCI']
 
     # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
-    data['YearOfBirth'] = data['YearOfBirth'].str.split('-').str[0].replace('', None).dropna().astype('Int32')
+    YOB='YearOfBirth'
+    data[YOB] = data[YOB].str.split('-').str[0].replace('', None).dropna().astype('Int32')
 
     # Transform the VaccineCode columns to clean then up
     # remove leading and trailing spaces, convert to uppercase so can be found in dictionary
@@ -166,6 +163,8 @@ def main(data_file, output_file):
     data[infected] = pd.notna(data['DateOfPositiveTest']).astype(int)   # got COVID infection 
 
     date_vaxxed='Date_FirstDose'
+
+
     # create fields so can see stats for infected and DIED after vaccination
     # caution: vaccinated are healthier so this can be misleading unless you are comparing vaxed with vaxxed
     # longitudinally
@@ -184,6 +183,12 @@ def main(data_file, output_file):
     # now do for the unvaxxed which is the complement
     data[infected_and_unvaxxed]   = data[infected]-data[infected_and_vaxxed]
     data[COVID_died_and_unvaxxed] = data[COVID_died]-data[COVID_died_and_vaxxed]
+
+    # Define the index field and value fields
+    index_fields = ['YearOfBirth', 'VaccineCode_FirstDose', 'DateOfPositiveTest', 
+                 boosted, vaxxed]   # these are fields we'll create after reading in the file
+    value_fields= [infected, COVID_died, infected_and_vaxxed, COVID_died_and_vaxxed, 
+               infected_and_unvaxxed, COVID_died_and_unvaxxed]
     
     # this line does all the work 
     # setting dropna=false allows index entries to include blank (e.g, no vaccinated data) since otherwise those rows are dropped
@@ -191,10 +196,10 @@ def main(data_file, output_file):
     # this is when we were counting date value_fields= ['Date_COVID_death', 'DateOfDeath']    
     # summary_df = data.groupby(index_fields)[value_fields].count().reset_index() 
     # make sure both have dropna=False!!
+    count="Count"
     summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()  
-    summary_df["Count"] = data.groupby(index_fields, dropna=False).size().values # add count
+    summary_df[count] = data.groupby(index_fields, dropna=False).size().values # add count
  
-    
     # now modify the labels to be more user friendly. Will replace blank with blank
     from mfg_codes import MFG_DICT
 
@@ -214,6 +219,34 @@ def main(data_file, output_file):
 
     print(f"Summary file has been written to {output_file}.")
 
+    #########################################################
+    ### Now let's add  another file for mortality analysis date_died
+    # index is date of all cause death. value columns are # matching records, sum of field of "vaxxed by week 24 or earlier"
+    date_died='DateOfDeath'           # reference to existing ACM death column
+    ACM_died_and_vaxxed='vaxxed_deaths' # define column name for output
+
+    # define for groupby
+    index_fields=[YOB, date_died]    # need to compute for each age because cohorts aren't comparable unless same age
+    value_fields=[ACM_died_and_vaxxed]
+    output_file='ACM_'+output_file    # unique output file
+
+    # define week 24 as the date where you are considered to be vaccinated
+    vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce')
+    data[ACM_died_and_vaxxed] = (
+        data[date_vaxxed].notna() & 
+        data[date_died].notna() & 
+        (data[date_vaxxed] <= vax_cutoff_date)
+        ).astype(int)
+
+    # do the work
+    summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()  
+    summary_df[count] = data.groupby(index_fields, dropna=False).size().values # add the basic count of # of records matching index fields
+
+    # Write the summary DataFrame to a CSV file
+    summary_df.to_csv(output_file, index=False)
+
+    print(f"ACM Summary file has been written to {output_file}.")
+    
 
 import sys
 
