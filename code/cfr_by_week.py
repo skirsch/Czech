@@ -228,10 +228,10 @@ def main(data_file, output_file):
     # define for groupby
     index_fields=[YOB, date_died]    # need to compute for each age because cohorts aren't comparable unless same age
     value_fields=[ACM_died_and_vaxxed]
-    output_file='ACM_'+output_file    # unique output file
+    output_file=output_file+'.ACM.csv'    # unique output file kludge since already full filename passed in
 
     # define week 24 as the date where you are considered to be vaccinated
-    vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce')
+    vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce').date()
     data[ACM_died_and_vaxxed] = (
         data[date_vaxxed].notna() & 
         data[date_died].notna() & 
