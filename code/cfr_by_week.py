@@ -226,7 +226,13 @@ def main(data_file, output_file):
     ACM_died_and_vaxxed='vaxxed_deaths' # define column name for output
 
     # define for groupby
-    index_fields=[YOB, date_died]    # need to compute for each age because cohorts aren't comparable unless same age
+    sex='Gender'
+    dcci='DCCI'
+    # compute for each age because cohorts aren't comparable unless same age
+    # NEGATIVE CONTROL fields
+    # add sex and dcci so can use as negative controls to ensure if we partition on either one instead of 
+    # whether vaxxed that we'll get a flat slope even if the mortalities are different between groups
+    index_fields=[YOB, date_died, sex, dcci]    
     value_fields=[ACM_died_and_vaxxed]
     output_file=output_file+'.ACM.csv'    # unique output file kludge since already full filename passed in
 
