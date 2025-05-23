@@ -237,6 +237,8 @@ def main(data_file, output_file):
     output_file=output_file+'.ACM.csv'    # unique output file kludge since already full filename passed in
 
     # define week 24 as the date where you are considered to be vaccinated
+    # this is 6/14. So the enrollment is that week
+    # therefore, you can start the cumulation immediately on that date
     vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce').date()
     data[ACM_died_and_vaxxed] = (
         data[date_vaxxed].notna() & 
