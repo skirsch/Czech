@@ -223,7 +223,8 @@ def main(data_file, output_file):
     ### Now let's add  another file for mortality analysis date_died
     # index is date of all cause death. value columns are # matching records, sum of field of "vaxxed by week 24 or earlier"
     date_died='DateOfDeath'           # reference to existing ACM death column
-    ACM_died_and_vaxxed='vaxxed_deaths' # define column name for output
+    ACM_died_and_vaxxed='vaxxed_deaths-wk24' # define column name for output
+    ACM_died_and_vaxxed0='vaxxed_deaths-wk17'  #define column name for output
 
     # define for groupby
     sex='Gender'
@@ -233,17 +234,25 @@ def main(data_file, output_file):
     # add sex and dcci so can use as negative controls to ensure if we partition on either one instead of 
     # whether vaxxed that we'll get a flat slope even if the mortalities are different between groups
     index_fields=[YOB, date_died, sex, dcci]    
-    value_fields=[ACM_died_and_vaxxed]
+    value_fields=[ACM_died_and_vaxxed, ACM_died_and_vaxxed0]    
     output_file=output_file+'.ACM.csv'    # unique output file kludge since already full filename passed in
 
     # define week 24 as the date where you are considered to be vaccinated
     # this is 6/14. So the enrollment is that week
     # therefore, you can start the cumulation immediately on that date
+
+    # create 2 cutoff dates so can use both as negative controls against each other!
     vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce').date()
+    vax_cutoff_date0=pd.to_datetime('2021-17' + '-1', format='%G-%V-%u', errors='coerce').date()  # half of 1950 group vaxxed by this time
     data[ACM_died_and_vaxxed] = (
         data[date_vaxxed].notna() & 
         data[date_died].notna() & 
         (data[date_vaxxed] <= vax_cutoff_date)
+        ).astype(int)
+    data[ACM_died_and_vaxxed0] = (
+        data[date_vaxxed].notna() & 
+        data[date_died].notna() & 
+        (data[date_vaxxed] <= vax_cutoff_date0)
         ).astype(int)
 
     # do the work
