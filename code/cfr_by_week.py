@@ -224,7 +224,7 @@ def main(data_file, output_file):
     # index is date of all cause death. value columns are # matching records, sum of field of "vaxxed by week 24 or earlier"
     date_died='DateOfDeath'           # reference to existing ACM death column
     ACM_died_and_vaxxed='vaxxed_deaths-wk24' # define column name for output
-    ACM_died_and_vaxxed0='vaxxed_deaths-wk17'  #define column name for output
+    ACM_died_and_vaxxed0='vaxxed_deaths-wk13'  #define column name for output
 
     # define for groupby
     sex='Gender'
@@ -243,7 +243,7 @@ def main(data_file, output_file):
 
     # create 2 cutoff dates so can use both as negative controls against each other!
     vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce').date()
-    vax_cutoff_date0=pd.to_datetime('2021-17' + '-1', format='%G-%V-%u', errors='coerce').date()  # half of 1950 group vaxxed by this time
+    vax_cutoff_date0=pd.to_datetime('2021-13' + '-1', format='%G-%V-%u', errors='coerce').date()  # 25% of 1950 group vaxxed by this time
     data[ACM_died_and_vaxxed] = (
         data[date_vaxxed].notna() & 
         data[date_died].notna() & 
