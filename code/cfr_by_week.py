@@ -247,7 +247,8 @@ def main(data_file, output_file):
 
     # create 2 cutoff dates so can use both as negative controls against each other!
     # this is the main analysis date to get a baseline during low covid. Want to be toward beginning since vax is dangerous
-    vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce').date()   # Jun 14, 2021
+    # Jun 14, 2021
+    vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce').date()   
 
     # this is the control group for the negative control test in the spreadsheet
     vax_cutoff_date0=pd.to_datetime('2021-13' + '-1', format='%G-%V-%u', errors='coerce').date()  # 25% of 1950 group vaxxed by this time
