@@ -1,7 +1,9 @@
 ### NOTE
 For the latest info, see my [Substack article](https://kirschsubstack.com/p/breaking-record-level-data-from-czech) and the postings done after that.
 
-I haven't had much time to update the numbers below. 
+I am now using the [offical Czech Republic data](https://www.nzip.cz/data/2135-covid-19-prehled-populace) which is freely downloadable.
+
+### below this line is VERY OLD
 
 However, other than the MRR numbers below, the info here should be basically correct.
 
