@@ -251,6 +251,7 @@ def main(data_file, output_file):
     vax_cutoff_date=pd.to_datetime('2021-24' + '-1', format='%G-%V-%u', errors='coerce').date()   
 
     # this is the control group for the negative control test in the spreadsheet
+    # March 29, 2021
     vax_cutoff_date0=pd.to_datetime('2021-13' + '-1', format='%G-%V-%u', errors='coerce').date()  # 25% of 1950 group vaxxed by this time
     # this is a cutoff time wk41, to all 3 weeks of baseline before COVID wave starts after week 43. This create max diff between vax / unvax to see max signal
     # Oct 11, 2021
