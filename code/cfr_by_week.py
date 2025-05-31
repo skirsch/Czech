@@ -236,7 +236,7 @@ def main(data_file, output_file):
     booster1='booster1'
     booster2='booster2'
     booster3='booster3'
-    shot0='unvaxxed' # never got the shots
+    shot0='shot0' # never got the shots
     shot1="shot1"   # got shot 1 and no more
     shot2="shot2"   # got shot2 but not 3
     shot3="shot3"   # got shot 3
