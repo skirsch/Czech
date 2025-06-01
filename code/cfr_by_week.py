@@ -232,7 +232,7 @@ def main(data_file, output_file):
     ACM_died_and_vaxxed0='vaxxed_deaths_wk13'  #define column name for output
     ACM_died_and_pre_COVID='vaxxed_deaths_pre_COVID'  #define column name for output
     ACM_died_and_post_booster='vaxxed_deaths_post_booster'  #define column name for output
-    booster0='unvaxxed'
+    booster0='booster0'
     booster1='booster1'
     booster2='booster2'
     booster3='booster3'
@@ -341,8 +341,7 @@ def main(data_file, output_file):
         (data[date_died] >= vax_cutoff_date_after_booster)  # died after booster cutoff
         ).astype(int)
     
-    ### current cohort sizes on each date regardless of cutoff dates
-    ### Now get cohort size counts each week based on MOST RECENT SHOT STATUS
+    ### current cohort sizes who DIED on a date on each date regardless of cutoff dates
     # this way, we can know the cohort sizes ON the cutoff date!!!
     # so we can track changes to the unvaxxed cohort happening after cutoff
     # but the main reason for this is to show that during booster time,
@@ -391,7 +390,23 @@ def main(data_file, output_file):
     summary_df.to_csv(output_file, index=False)
 
     print(f"ACM Summary file has been written to {output_file}.")
-    
+
+
+    ### THIRD FILE... shot file by DOB
+    ### index: DOB, shot1, shot2, shot3
+    ### this can tell you # of pepole in each vax status on any date to see if it is shot 2 or shot 0 people getting Boosters (blank, blank, booster date)
+    index_fields=[YOB,  date_vaxxed, date_second, date_boosted]    
+    value_fields=[]    
+    output_file=output_file+'.shot_rollout.csv'    # unique output file kludge since already full filename passed in
+
+    # do the work. sum for empty fields
+    summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()  
+    summary_df[count] = data.groupby(index_fields, dropna=False).size().values # add the basic count of # of records matching index fields
+
+    # Write the summary DataFrame to a CSV file
+    summary_df.to_csv(output_file, index=False)
+
+    print(f"ACM Summary file has been written to {output_file}.")
 
 import sys
 
