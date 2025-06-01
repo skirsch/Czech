@@ -251,8 +251,8 @@ def main(data_file, output_file):
     # whether vaxxed that we'll get a flat slope even if the mortalities are different between groups
     index_fields=[YOB, date_died, sex, dcci]    
     value_fields=[ACM_died_and_vaxxed, ACM_died_and_vaxxed0, ACM_died_and_pre_COVID, ACM_died_and_post_booster, 
-                  booster0, booster1, booster2, booster3,
-                  shot0, shot1, shot2, shot3]    
+                  booster0, booster1, booster2, booster3]
+
     output_file=output_file+'.ACM.csv'    # unique output file kludge since already full filename passed in
 
     # CUTOFF DATES
@@ -349,31 +349,7 @@ def main(data_file, output_file):
     # would thus affect MOSTLY the 2 shot people who would die less.
     # but the full unvaxxed would be unaffected. So when the unvaxxed and 2 shots both decline at the same rate
     # it means the decline isn't HVE sine that would ONLY affect 2 shot people
-    data[shot3] = (
-        data[date_boosted].notna()  # got shot (boosted date exists)
-        ).astype(int)
-
-    # didn't get booster, but died after cutoff date with only 2 shots
-    data[shot2] = (
-        data[date_boosted].isna() &  # did NOT get booster
-        data[date_second].notna()    # the highest shot is shot 2
-        ).astype(int)
     
-    # didn't get booster or second shot, but got 1 shot
-    data[shot1] = (
-        data[date_boosted].isna() &  # did NOT get booster
-        data[date_second].isna() &   # did not get second shot
-        data[date_vaxxed].notna()   # stopped vaxxing at shot 1
-        ).astype(int)
-
-    # didn't get any shots completely unvaxxed  
-    data[shot0] = (
-        data[date_boosted].isna() &  # did NOT get booster
-        data[date_second].isna() &   # no second shot
-        data[date_vaxxed].isna()  # no first shot
-        ).astype(int)
-
-
 
     # leave original
     data[ACM_died_and_post_booster] = (
@@ -391,12 +367,31 @@ def main(data_file, output_file):
 
     print(f"ACM Summary file has been written to {output_file}.")
 
-
+    ################################################################################################################################
     ### THIRD FILE... shot file by DOB
     ### index: DOB, shot1, shot2, shot3
     ### this can tell you # of pepole in each vax status on any date to see if it is shot 2 or shot 0 people getting Boosters (blank, blank, booster date)
-    index_fields=[YOB,  date_vaxxed, date_second, date_boosted]    
-    value_fields=[]    
+    
+    # got second shot
+    data[shot2] = (
+        data[date_second].notna()    # the highest shot is shot 2
+        ).astype(int)
+    
+    # got ONLY one shot, not 2
+    data[shot1] = (
+        data[date_second].isna() &   # did not get second shot
+        data[date_vaxxed].notna()   # stopped vaxxing at shot 1
+        ).astype(int)
+
+    # didn't get any shots completely unvaxxed  
+    data[shot0] = (
+        data[date_second].isna() &   # no second shot
+        data[date_vaxxed].isna()  # no first shot
+        ).astype(int)
+    
+    index_fields=[YOB, date_boosted]    
+    value_fields=[shot0, shot1, shot2]   # show how many of each type got boosted on that day
+
     output_file=output_file+'.shot_rollout.csv'    # unique output file kludge since already full filename passed in
 
     # do the work. sum for empty fields
