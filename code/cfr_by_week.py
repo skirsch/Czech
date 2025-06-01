@@ -307,7 +307,7 @@ def main(data_file, output_file):
     
     # got booster (regardless of previous shots) and died
     data[booster3] = (
-        data[date_boosted].notna() &  # got booster (boosted date exists)
+        data[date_boosted].notna() &  # got booster (boosted date exists regardless of any other shots)
 #        data[date_second].notna() &   # got second shot too
 #        data[date_vaxxed].notna() &  # and got first shot
         data[date_died].notna() &     # died 
@@ -326,8 +326,8 @@ def main(data_file, output_file):
     # didn't get booster or second shot, but got 1 shot
     data[booster1] = (
         data[date_boosted].isna() &  # did NOT get booster
-        data[date_second].isna() &   # got second shot too
-        data[date_vaxxed].notna() &  # and got first shot
+        data[date_second].isna() &   # did not get second shot
+        data[date_vaxxed].notna() &  # but got first shot
         data[date_died].notna() &     # died 
         (data[date_died] >= vax_cutoff_date_after_booster)  # died after booster cutoff
         ).astype(int)
@@ -368,29 +368,45 @@ def main(data_file, output_file):
     print(f"ACM Summary file has been written to {output_file}.")
 
     ################################################################################################################################
-    ### THIRD FILE... shot file by DOB
-    ### index: DOB, shot1, shot2, shot3
+    ### THIRD FILE... shot file by DOB. date of booster
+    ### index: DOB, date of booster 
+    # value: shot1, shot2, shot3
     ### this can tell you # of pepole in each vax status on any date to see if it is shot 2 or shot 0 people getting Boosters (blank, blank, booster date)
     
     # got second shot
+    # this creates a shot2 column added to the original record level database where each row has a 0 1 based on
+    # the status of the indicated fields. 
+    # I'm ONLY interested in people who got the boosters BEFORE the booster cutoff date
+    # that is a criteria for the count. I want to know where the boosted cohort was drawn from
+    # I suspect it was MOSTLY people who got the second shot
+
+    # enrolled from the shot2 group
     data[shot2] = (
-        data[date_second].notna()    # the highest shot is shot 2
+        # data[date_boosted].notna() &  
+        # (data[date_boosted] <= vax_cutoff_date_after_booster)
+        data[date_second].notna()    # boosted before cutoff from the shot 2 groups
         ).astype(int)
     
-    # got ONLY one shot, not 2
+    # enrolled from the shot 1 group
     data[shot1] = (
-        data[date_second].isna() &   # did not get second shot
+        # data[date_boosted].notna() &  
+        # (data[date_boosted] <= vax_cutoff_date_after_booster) &
+        data[date_second].isna() &   # boosted before cutoff from the shot 2 groups
         data[date_vaxxed].notna()   # stopped vaxxing at shot 1
         ).astype(int)
 
-    # didn't get any shots completely unvaxxed  
+    # didn't get any shots completely unvaxxed when we got boosted
     data[shot0] = (
+        # data[date_boosted].notna() &  
+        # (data[date_boosted] <= vax_cutoff_date_after_booster) &
         data[date_second].isna() &   # no second shot
         data[date_vaxxed].isna()  # no first shot
         ).astype(int)
     
     index_fields=[YOB, date_boosted]    
-    value_fields=[shot0, shot1, shot2]   # show how many of each type got boosted on that day
+    value_fields=[shot0, shot1, shot2]   # show how many of each type got boosted on that day 
+    # no need to do the cutoff day because pivot table will take care of that. will be interesting to see what happens post cutoff
+    # so can see if our cutoff date was a good choice
 
     output_file=output_file+'.shot_rollout.csv'    # unique output file kludge since already full filename passed in
 
