@@ -295,7 +295,7 @@ def main(data_file, output_file):
     # set true if had only 1 vax on the cutoff date, and NOT vax2 (at all or by the cutoff)
     data[vax1_by_jun_cutoff] = (
         (data[date_vax1] <= jun_cutoff_date) &
-        ((data['date_vax2'].isna()) | (data['date_vax2'] > jun_cutoff_date))
+        ((data[date_vax2].isna()) | (data[date_vax2] > jun_cutoff_date))
         ).astype(int)
     
     # set true if had 2 vax (or more) on the cutoff date
