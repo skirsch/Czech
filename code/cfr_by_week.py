@@ -285,6 +285,7 @@ def main(data_file, output_file):
 
     # main event here. track vax0, vax1, vax2 by jun cutoff
 
+    """
     # set true if not vaxxed at all by the cutoff
     data[vax0_by_jun_cutoff] = (
         # true if no first date, or vaxxed > first date
@@ -303,10 +304,31 @@ def main(data_file, output_file):
     data[vax2_by_jun_cutoff] = (
         (data[date_vax2] <= jun_cutoff_date)
         ).astype(int)
+    """
+    # Initialize to 0
+    data[vax0_by_jun_cutoff] = 0
+    data[vax1_by_jun_cutoff] = 0
+    data[vax2_by_jun_cutoff] = 0
+
+    # Priority order: assign 2nd dose first, then 1st, then unvaxxed
+    data.loc[
+        (data[date_vax2].notna()) & (data[date_vax2] <= jun_cutoff_date),
+        vax2_by_jun_cutoff
+    ] = 1
+
+    data.loc[
+        (data[date_vax1].notna()) & (data[date_vax1] <= jun_cutoff_date) &
+        ((data[date_vax2].isna()) | (data[date_vax2] > jun_cutoff_date)),
+        vax1_by_jun_cutoff
+    ] = 1
+
+    data.loc[
+        (data[date_vax1].isna()) | (data[date_vax1] > jun_cutoff_date),
+        vax0_by_jun_cutoff
+    ] = 1
+
+    assert((data[[vax0_by_jun_cutoff, vax1_by_jun_cutoff, vax2_by_jun_cutoff]].sum(axis=1) == 1).all())
     
-    sanity_check=(data[[vax0_by_jun_cutoff, vax1_by_jun_cutoff, vax2_by_jun_cutoff, vax3_by_jun_cutoff]].sum(axis=1) == 1).all()
-    if not sanity_check:
-        print("Failed by_jun sanity check")
 
     # this is for negative control tests using an earlier vax date to compare with later
     data[vax1_by_mar_cutoff] = (
@@ -331,6 +353,7 @@ def main(data_file, output_file):
     # based on their status at the time of the jun_cutoff_date
     # got booster (regardless of previous shots) and died
 
+    """
     # we'll be using date died as an index field here, so no need to say died after booster cutoff
     data[booster3] = (
         (data[date_vax3] <= booster_cutoff_date)  # boosted before booster cutoff
@@ -354,21 +377,60 @@ def main(data_file, output_file):
         data[date_vax1].isna() | 
         (data[date_vax1] > booster_cutoff_date)
         ).astype(int)
-    
-    ### current cohort sizes who DIED on a date on each date regardless of cutoff dates
-    # this way, we can know the cohort sizes ON the cutoff date!!!
-    # so we can track changes to the unvaxxed cohort happening after cutoff
-    # but the main reason for this is to show that during booster time,
-    # the cohort drawn from was the 2 shot people, so claiming long term HVE
-    # would thus affect MOSTLY the 2 shot people who would die less.
-    # but the full unvaxxed would be unaffected. So when the unvaxxed and 2 shots both decline at the same rate
-    # it means the decline isn't HVE sine that would ONLY affect 2 shot people
-    
-    sanity_check=(data[[booster0, booster1, booster2, booster3]].sum(axis=1) == 1).all()
-    if not sanity_check:
-        print("failed booster sanity check")
+    """
 
+        # Initialize all to 0
+    data[booster0] = 0
+    data[booster1] = 0
+    data[booster2] = 0
+    data[booster3] = 0
 
+    # loc will only assign if assignment needed, and NOT modify settings of untouched rows
+
+    # Assign booster3 first: got third dose on or before cutoff
+    data.loc[
+        (data[date_vax3].notna()) & (data[date_vax3] <= booster_cutoff_date),
+        booster3
+    ] = 1
+
+    # Assign booster2: second dose before cutoff, no third dose before cutoff
+    data.loc[
+        (data[booster3] == 0) &  # exclude already assigned
+        (data[date_vax2].notna()) & (data[date_vax2] <= booster_cutoff_date),
+        booster2
+    ] = 1
+
+    # Assign booster1: first dose before cutoff, no second/third dose before cutoff
+    data.loc[
+        (data[booster3] == 0) & (data[booster2] == 0) &
+        (data[date_vax1].notna()) & (data[date_vax1] <= booster_cutoff_date),
+        booster1
+    ] = 1
+
+    # Assign booster0: no doses at all before cutoff
+    data.loc[
+        (data[booster3] == 0) & (data[booster2] == 0) & (data[booster1] == 0),
+        booster0
+    ] = 1
+
+    # dump to debug
+    # Optional: Create cohort sum to detect invalid rows
+    data['booster_cohort_sum'] = data[[booster0, booster1, booster2, booster3]].sum(axis=1)
+
+    # Columns to dump
+    debug_cols = [
+        'Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose',
+        booster0, booster1, booster2, booster3,
+        'booster_cohort_sum'
+    ]
+
+    """
+    # Dump the first 10,000 rows to a CSV for debugging
+    data[debug_cols].head(10000).to_csv("debug_booster_cohorts.csv", index=False)
+    """
+
+    assert((data[[booster0, booster1, booster2, booster3]].sum(axis=1) == 1).all())
+    
     # do the work
     summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()  
     summary_df[count] = data.groupby(index_fields, dropna=False).size().values # add the basic count of # of records matching index fields
