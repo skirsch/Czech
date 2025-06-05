@@ -305,40 +305,45 @@ def main(data_file, output_file):
 
     # NOT COUNTED: those who got shot 2, but not shot 1
     
+    # the idea is that each record gets a 1 in the proper field if they died 
+    # based on their status at the time of the vax_cutoff_date
     # got booster (regardless of previous shots) and died
+
+    # we'll be using date died as an index field here, so no need to say died after booster cutoff
     data[booster3] = (
         data[date_boosted].notna() &  # got booster (boosted date exists regardless of any other shots)
 #        data[date_second].notna() &   # got second shot too
 #        data[date_vaxxed].notna() &  # and got first shot
         data[date_died].notna() &     # died 
-        (data[date_died] >= vax_cutoff_date_after_booster)  # died after booster cutoff
+        # (data[date_died] >= vax_cutoff_date_after_booster)  # died after booster cutoff
+        (data[date_boosted] <= vax_cutoff_date_after_booster)  # boosted before booster cutoff
         ).astype(int)
 
-    # didn't get booster, but died after cutoff date with only 2 shots
+    # didn't get booster before cutoff date, but died after cutoff date with only 2 shots
     data[booster2] = (
-        data[date_boosted].isna() &  # did NOT get booster
+        # did NOT get booster OR got booster after cutoff so put in dose 2 group
+        ((data[date_boosted].isna()) | (data[date_boosted] > vax_cutoff_date_after_booster)) &  
         data[date_second].notna() &   # got second shot too
         data[date_vaxxed].notna() &  # and got first shot
         data[date_died].notna() &     # died 
-        (data[date_died] >= vax_cutoff_date_after_booster)  # died after booster cutoff
+        (data[date_second] <= vax_cutoff_date_after_booster)  # got second shot before cutoff
         ).astype(int)
     
-    # didn't get booster or second shot, but got 1 shot
+    # didn't get booster or second shot (or got them later), but got 1 shot by booster cutoff date
     data[booster1] = (
-        data[date_boosted].isna() &  # did NOT get booster
-        data[date_second].isna() &   # did not get second shot
+        ((data[date_boosted].isna()) | (data[date_boosted] > vax_cutoff_date_after_booster)) &  
+        ((data[date_second].isna()) | (data[date_second] > vax_cutoff_date_after_booster)) &  
         data[date_vaxxed].notna() &  # but got first shot
         data[date_died].notna() &     # died 
-        (data[date_died] >= vax_cutoff_date_after_booster)  # died after booster cutoff
+        (data[date_vaxxed] <= vax_cutoff_date_after_booster)  # got first shot before cutoff
         ).astype(int)
 
     # didn't get any shots completely unvaxxed  
     data[booster0] = (
-        data[date_boosted].isna() &  # did NOT get booster
-        data[date_second].isna() &   # no second shot
-        data[date_vaxxed].isna() &  # no first shot
-        data[date_died].notna() &     # died 
-        (data[date_died] >= vax_cutoff_date_after_booster)  # died after booster cutoff
+        ((data[date_boosted].isna()) | (data[date_boosted] > vax_cutoff_date_after_booster)) &  
+        ((data[date_second].isna()) | (data[date_second] > vax_cutoff_date_after_booster)) &  
+        ((data[date_vaxxed].isna()) | (data[date_vaxxed] > vax_cutoff_date_after_booster)) &  
+        data[date_died].notna()     # died 
         ).astype(int)
     
     ### current cohort sizes who DIED on a date on each date regardless of cutoff dates
@@ -351,7 +356,7 @@ def main(data_file, output_file):
     # it means the decline isn't HVE sine that would ONLY affect 2 shot people
     
 
-    # leave original
+    # leave original definition there... compare with booster3
     data[ACM_died_and_post_booster] = (
         data[date_boosted].notna() & 
         data[date_died].notna() & 
