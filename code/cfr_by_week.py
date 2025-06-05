@@ -122,7 +122,7 @@ def main(data_file, output_file):
     # data['Infection'] = data['Infection'].fillna(0).astype('Int32')
 
     # Convert dates from YYYY-WW format to pandas datetime format
-    for col in ['Date_COVID_death', 'DateOfPositiveTest', 'DateOfDeath', 'Date_FirstDose', 'Date_ThirdDose']:
+    for col in ['Date_COVID_death', 'DateOfPositiveTest', 'DateOfDeath', 'Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose']:
         data[col] = pd.to_datetime(data[col] + '-1', format='%G-%V-%u', errors='coerce').dt.date
     # the dt.date will remove the time part of the date so things are cleaner. The  ISO format adds the time.
     # %G-%V-%u because the Czech data uses ISO 8601 weeks
@@ -293,6 +293,7 @@ def main(data_file, output_file):
         ).astype(int)
     
     # set true if had only 1 vax on the cutoff date, and NOT vax2 (at all or by the cutoff)
+    
     data[vax1_by_jun_cutoff] = (
         (data[date_vax1] <= jun_cutoff_date) &
         ((data[date_vax2].isna()) | (data[date_vax2] > jun_cutoff_date))
