@@ -6,3 +6,4 @@ vax_24_1950.xlsx filter=lfs diff=lfs merge=lfs -text
 vax_24_1955.xlsx filter=lfs diff=lfs merge=lfs -text
 vax_24_1950_CC.xlsx filter=lfs diff=lfs merge=lfs -text
 vax_24_19*.xlsx filter=lfs diff=lfs merge=lfs -text
+deaths.xlsx filter=lfs diff=lfs merge=lfs -text
