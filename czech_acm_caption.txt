@@ -1,6 +1,0 @@
-
-Czech ACM Data: No Vaccine Mortality Benefit
-FOIA-derived data (8,732 deaths, millions of person-weeks) shows no differential benefit: 
-both cohorts exhibit ~1.49x ACM increase from low to high COVID periods, with a stable 
-~3.3 unvaccinated/vaccinated ratio, contradicting an expected 1.13–1.5x unvaccinated spike 
-(14.62% COVID deaths). 84.3% vaccinated cases in 2022 confirm no infection reduction.
