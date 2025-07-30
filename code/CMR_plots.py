@@ -1,3 +1,12 @@
+# 
+# CMR_plots.py
+#
+# This script processes vaccination and death data to compute CMR (Crude Mortality Rate)   
+# It loads a dataset, processes it to extract relevant information, computes weekly death counts for vaccinated and unvaccinated individuals, and calculates CMR per 100,000 population per year.
+# Computes ages for birth year between 1930 and 2000
+# 
+# It also shows deaths by birth cohort and vaccination status over time, allowing for analysis of mortality trends in relation to vaccination status.
+#     
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -60,15 +69,21 @@ deads_df = a[a['death_date_lpz'].notnull()].copy()
 deads_df['date'] = deads_df['death_date_lpz']
 
 # Compute weekly death counts for fixed-vax and fixed-unvax
+weeks = sorted(df['week'].unique())
+cohorts = sorted(df['born'].unique())
+full_index = pd.MultiIndex.from_product([weeks, cohorts], names=['week', 'born'])
 deads = deads_df.groupby(['week', 'born', 'fixed_vax']).size().reset_index(name='deaths')
 deads_pivot = deads.pivot_table(index=['week', 'born'], columns='fixed_vax', values='deaths', fill_value=0)
-deads_pivot = deads_pivot.rename(columns={False: 'unvax_dead', True: 'vax_dead'}).reset_index()
+deads_pivot = deads_pivot.rename(columns={False: 'unvax_dead', True: 'vax_dead'})
+deads_pivot = deads_pivot.reindex(full_index, fill_value=0).reset_index()
 print("deads born:", deads_pivot['born'].unique())
 
 # Population base as of 2021-24
 ## Use a copy of the already loaded and processed data for population base
 a_cohort = a.copy()  # Do NOT filter by death_date_lpz
 a_cohort = a_cohort[a_cohort['birth_year'] >= 1940]
+# Only include individuals alive at the enrollment date
+a_cohort = a_cohort[(a_cohort['death_date_lpz'].isna()) | (a_cohort['death_date_lpz'] > enrollment_date)]
 pop_base = a_cohort.groupby(['born', 'fixed_vax']).size().reset_index(name='pop')
 pop_pivot = pop_base.pivot_table(index=['born'], columns='fixed_vax', values='pop', fill_value=0)
 pop_pivot = pop_pivot.rename(columns={False: 'unvax_pop', True: 'vax_pop'}).reset_index()
