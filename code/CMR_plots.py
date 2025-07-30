@@ -170,6 +170,9 @@ all_ages = all_ages_deaths[['week', 'born', 'vax_cmr', 'unvax_cmr', 'vax_alive_s
 # Append all-ages rows to merged
 merged_out = pd.concat([merged[['week', 'born', 'vax_cmr', 'unvax_cmr', 'vax_alive_start', 'unvax_alive_start', 'vax_dead_week', 'unvax_dead_week']], all_ages], ignore_index=True)
 
+# Remove rows with NaN week
+merged_out = merged_out[merged_out['week'].notna()]
+
 # Convert CMR columns to integer type for Excel compatibility
 for col in ['vax_cmr', 'unvax_cmr', 'vax_alive_start', 'unvax_alive_start', 'vax_dead_week', 'unvax_dead_week']:
     merged_out[col] = merged_out[col].fillna(0).astype(int)
