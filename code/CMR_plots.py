@@ -31,8 +31,8 @@ a = a.rename(columns={
 # Convert relevant columns to datetime (ISO format assumed: YYYY-MM-DD)
 # Extract cohort year from birth year range (e.g., '1970-1974' -> 1970)
 a['birth_year'] = a['birth_year_range'].str.extract(r'(\d{4})').astype(float)
-# Limit to cohorts born 1930-2000
-a = a[(a['birth_year'] >= 1930) & (a['birth_year'] <= 2000)]
+# Limit to cohorts born 1920-2000
+a = a[(a['birth_year'] >= 1900) & (a['birth_year'] <= 2020)]
 
 # Parse ISO week format for first dose and death date
 a['first_dose_date'] = pd.to_datetime(a['first_dose_date'].str.replace(r'[^0-9-]', '', regex=True) + '-1', format='%G-%V-%u', errors='coerce')
@@ -81,7 +81,6 @@ print("deads born:", deads_pivot['born'].unique())
 # Population base as of 2021-24
 ## Use a copy of the already loaded and processed data for population base
 a_cohort = a.copy()  # Do NOT filter by death_date_lpz
-a_cohort = a_cohort[a_cohort['birth_year'] >= 1940]
 # Only include individuals alive at the enrollment date
 a_cohort = a_cohort[(a_cohort['death_date_lpz'].isna()) | (a_cohort['death_date_lpz'] > enrollment_date)]
 pop_base = a_cohort.groupby(['born', 'fixed_vax']).size().reset_index(name='pop')
@@ -166,9 +165,13 @@ all_ages_deaths['unvax_cmr'] = all_ages_deaths['unvax_dead_week'] / all_ages_dea
 
 # Reorder columns to match merged
 all_ages = all_ages_deaths[['week', 'born', 'vax_cmr', 'unvax_cmr', 'vax_alive_start', 'unvax_alive_start', 'vax_dead_week', 'unvax_dead_week']]
+# Remove rows with NaN week from both merged and all_ages before concatenation
+merged_clean = merged[['week', 'born', 'vax_cmr', 'unvax_cmr', 'vax_alive_start', 'unvax_alive_start', 'vax_dead_week', 'unvax_dead_week']].copy()
+merged_clean = merged_clean[merged_clean['week'].notna()]
+all_ages = all_ages[all_ages['week'].notna()]
 
 # Append all-ages rows to merged
-merged_out = pd.concat([merged[['week', 'born', 'vax_cmr', 'unvax_cmr', 'vax_alive_start', 'unvax_alive_start', 'vax_dead_week', 'unvax_dead_week']], all_ages], ignore_index=True)
+merged_out = pd.concat([merged_clean, all_ages], ignore_index=True)
 
 # Remove rows with NaN week
 merged_out = merged_out[merged_out['week'].notna()]
