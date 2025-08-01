@@ -1,3 +1,5 @@
+# This used to be cfr_by_week.py but now is KCOR.py. This generates the KCOR output.
+# 
 # This code is derived from vax_24.py which analyses the official Nov 2024 Czechia data
 # The idea here is to use the infected date as the index, then count deceased both if vaccinated or unvaccinated.
 # infected and died_from_covid are the two key output columns
