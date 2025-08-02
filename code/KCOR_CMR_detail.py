@@ -1,5 +1,7 @@
 # 
-# CMR_plots.py
+# KCOR_CMR_detail.py
+#
+# This is a complement to KCOR.py. It generates output to allow computation of CMR (Crude Mortality Rate) for vaccinated and unvaccinated individuals.
 #
 # This script processes vaccination and death data to compute CMR (Crude Mortality Rate)   
 # It loads a dataset, processes it to extract relevant information, computes weekly death counts for vaccinated and unvaccinated individuals, and calculates CMR per 100,000 population per year.
