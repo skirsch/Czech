@@ -49,7 +49,7 @@ a = a[~((a['death_date_lpz'].notnull()) & (a['first_dose_date'] > a['death_date_
 
 # Define fixed vaccination status as of 2021-24
 enrollment_date = pd.to_datetime("2021-06-14")  # ISO week 2021-24 starts on 2021-06-14
-a['fixed_vax'] = a['first_dose_date'] < enrollment_date
+a['fixed_vax'] = a['first_dose_date'] <= enrollment_date # Matches KCOR.py logic
 
 # Assign birth cohort
 
