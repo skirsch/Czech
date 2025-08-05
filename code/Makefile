@@ -1,3 +1,14 @@
+# KCOR output
+KCOR_summary=$(datadir)/KCOR  # it will append suffixes for the output .csv files
+KCOR.py=KCOR.py
+KCOR_files=$(KCOR_summary)
+
+KCOR: $(KCOR_files)
+
+$(KCOR_files): $(vax_24_source) $(KCOR.py)
+	@echo "Making the KCOR summary file `date`"
+	@python $(KCOR.py) $(vax_24_source) $(KCOR_summary)
+	@echo "Finished at `date`"
 # Makefile to generate all the analysis files
 # 
 
@@ -39,7 +50,7 @@ czech_ACM_files=$(czech_ACM_summary)  # output file
 czech_ACM: $(czech_ACM_files)
 
 $(czech_ACM_files): $(vax_24_source) $(czech_ACM.py)
-    # make using the vax_24.csv file which can be swapped to sample.csv above
+	# make using the vax_24.csv file which can be swapped to sample.csv above
 	@echo "Making the czech_ACM summary file `date`"
 	@python $(czech_ACM.py) $(vax_24_source) $(czech_ACM_summary)
 	@echo "Finished at `date`"
@@ -88,7 +99,7 @@ vax_24: $(vax_24_files)
 cfr_by_week: $(cfr_by_week_files)
 
 $(cfr_by_week_files): $(vax_24_source) $(cfr_by_week.py)
-    # make using the vax_24.csv file which can be swapped to sample.csv above
+	# make using the vax_24.csv file which can be swapped to sample.csv above
 	@echo "Making the cfr_by_week summary file `date`"
 	@python $(cfr_by_week.py) $(vax_24_source) $(cfr_by_week_summary)
 	@echo "Finished at `date`"

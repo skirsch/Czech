@@ -1,5 +1,12 @@
-# This used to be cfr_by_week.py but now is KCOR.py. 
+# This used to be named cfr_by_week.py but now is KCOR.py. 
+# tl;dr: cd code; make KCOR
+#
 # This generates the KCOR output.
+# fixed on 8/5/2025 to filter out rows with infection of 2 or more
+# This is the main program to generate the KCOR output for the Czechia data.
+# It is based on the vax_24.py program which does the same thing but this uses the Nov 2024 data.
+# This is the main program to generate the KCOR output for the Czechia data.
+
 # See also CMR_plots.py which is the CMR output which has additional info for KCOR and the counts should match since enroll is <=.
 # 
 # This code is derived from vax_24.py which analyses the official Nov 2024 Czechia data
@@ -12,7 +19,7 @@
 # 1a. Download the datafile listed below:
 #     wget https://data.mzcr.cz/data/distribuce/402/Otevrena-data-NR-26-30-COVID-19-prehled-populace-2024-01.csv
 # 2. rename the datafile to vax_24.csv and put in the data directory
-# 3. cd code; make cfr_by_week
+# 3. cd code; make KCOR
 
 # this creates cfr_by_week.csv in the data directory
 
@@ -69,7 +76,7 @@ import pandas as pd
 
 data_file='../data/vax_24.csv'
 data_file='../data/sample.csv' # for debug
-output_file = '../data/cfr_by_week.csv'
+output_file = '../data/KCOR'
 
 boosted='boosted_before_infected'
 vaxxed='vaxxed_before_infected'
@@ -79,9 +86,6 @@ infected_and_vaxxed='infected_and_vaxxed'
 COVID_died_and_vaxxed='COVID_died_and_vaxxed'
 infected_and_unvaxxed='infected_and_unvaxxed'
 COVID_died_and_unvaxxed='COVID_died_and_unvaxxed'
-
-
-
 
 # And the value fields that I want to sum up so I can compute an IFR
 # the first two will create # COVID deaths and # of ACM deaths for people in the cohort
@@ -97,6 +101,7 @@ def main(data_file, output_file):
     # Load the CSV file into a DataFrame. 
     # I have plenty of memory so let pandas know that to avoid type errors on dose 6 which happens later in the fil
 
+
     data = pd.read_csv(data_file, low_memory=False)
 
     # rename the columns in English
@@ -111,6 +116,12 @@ def main(data_file, output_file):
         'max_Oxygen', 'bin_HFNO', 'min_HFNO', 'days_HFNO', 'max_HFNO', 'bin_MechanicalVentilation_ECMO',
         'min_MechanicalVentilation_ECMO', 'days_MechanicalVentilation_ECMO', 'max_MechanicalVentilation_ECMO',
         'Mutation', 'DateOfDeath', 'Long_COVID', 'DCCI']
+    
+    # if you got infected more than once, it will create a duplicate record (with a different ID) so
+    # remove those records so we don't double count the deaths.
+
+    # Remove records where Infection > 1
+    data = data[(data['Infection'].fillna(0).astype(int) <= 1)]
 
     # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
     YOB='YearOfBirth'
@@ -222,15 +233,20 @@ def main(data_file, output_file):
     # summary_df.replace('NONE', '', inplace=True)
 
     # Write the summary DataFrame to a CSV file
-    summary_df.to_csv(output_file, index=False)
+    output_file_full_path=output_file+'.cfr_analysis.csv'    # append the filename suffix
+    summary_df.to_csv(output_file_full_path, index=False)
 
-    print(f"Summary file has been written to {output_file}.")
+    print(f"CFR Summary file has been written to {output_file_full_path}.")
     
     
     #################################################################### PART 2 (second file)
     ################# KCOR OUTPUT is this section. Other sections are for other purposes
     #########################################################
-    ### Now let's add  another file for mortality analysis date_died for KCOR
+    
+    # this is the main KCOR output file
+
+    output_file_full_path=output_file+'.main.csv'    # append the filename suffix
+
 
     # index is date of all cause death. value columns are # matching records, sum of field of "vaxxed by week 24 or earlier"
     date_died='DateOfDeath'           # reference to existing ACM death column
@@ -263,7 +279,6 @@ def main(data_file, output_file):
                    vax1_by_mar_cutoff, vax1_by_oct_cutoff, 
                   booster0, booster1, booster2, booster3]
 
-    output_file=output_file+'.ACM.csv'    # unique output file kludge since already full filename passed in
 
     # CUTOFF DATES
     # define week 24 as the date where you are considered to be vaccinated
@@ -440,9 +455,9 @@ def main(data_file, output_file):
     summary_df[count] = data.groupby(index_fields, dropna=False).size().values # add the basic count of # of records matching index fields
 
     # Write the summary DataFrame to a CSV file
-    summary_df.to_csv(output_file, index=False)
+    summary_df.to_csv(output_file_full_path, index=False)
 
-    print(f"ACM Summary file has been written to {output_file}.")
+    print(f"KCOR main file has been written to {output_file_full_path}.")
 
     ################################################################################################################################
     ### THIRD FILE...supplementary file to see when people got their boosters
@@ -458,6 +473,8 @@ def main(data_file, output_file):
     # I'm ONLY interested in people who got the boosters BEFORE the booster cutoff date
     # that is a criteria for the count. I want to know where the boosted cohort was drawn from
     # I suspect it was MOSTLY people who got the second shot
+
+    output_file_full_path=output_file+'.shot_rollout_analysis.csv'    # unique output file kludge since already full filename passed in
 
     # enrolled from the shot2 group
     data[shot2] = (
@@ -487,22 +504,21 @@ def main(data_file, output_file):
     # no need to do the cutoff day because pivot table will take care of that. will be interesting to see what happens post cutoff
     # so can see if our cutoff date was a good choice
 
-    output_file=output_file+'.shot_rollout.csv'    # unique output file kludge since already full filename passed in
-
+    
     # do the work. sum for empty fields
     summary_df = data.groupby(index_fields, dropna=False)[value_fields].sum().reset_index()  
     summary_df[count] = data.groupby(index_fields, dropna=False).size().values # add the basic count of # of records matching index fields
 
     # Write the summary DataFrame to a CSV file
-    summary_df.to_csv(output_file, index=False)
+    summary_df.to_csv(output_file_full_path, index=False)
 
-    print(f"ACM Summary file has been written to {output_file}.")
+    print(f"ACM Summary file has been written to {output_file_full_path}.")
 
 import sys
 
 # Check for command-line arguments
 if len(sys.argv) != 3:
-    print("Usage: python script.py <source_file> <output_file>")
+    print("Usage: cd code; make KCOR")
     sys.exit(1)
 
 # Command-line arguments

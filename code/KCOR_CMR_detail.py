@@ -2,10 +2,12 @@
 # KCOR_CMR_detail.py
 #
 # This is a complement to KCOR.py. It generates output to allow computation of CMR (Crude Mortality Rate) for vaccinated and unvaccinated individuals.
+# it does not require the KCOR.py script to run, but it uses the same data format.
+# It only looks at first dose vaccination data and ACM death dates.
 #
 # This script processes vaccination and death data to compute CMR (Crude Mortality Rate)   
 # It loads a dataset, processes it to extract relevant information, computes weekly death counts for vaccinated and unvaccinated individuals, and calculates CMR per 100,000 population per year.
-# Computes ages for birth year between 1930 and 2000
+# Computes ages for birth year between 1900 and 2000
 # 
 # It also shows deaths by birth cohort and vaccination status over time, allowing for analysis of mortality trends in relation to vaccination status.
 #     
@@ -18,7 +20,6 @@ a = pd.read_csv(
     "../czech/data/vax_24.csv",
     dtype={
         'Datum_Prvni_davka': str,
-        'Umrti': str,
         'DatumUmrtiLPZ': str,
         'RokNarozeni': str
     },
@@ -26,14 +27,25 @@ a = pd.read_csv(
 )
 a = a.rename(columns={
     'Datum_Prvni_davka': 'first_dose_date',
-    'DatumUmrtiLPZ': 'death_date_lpz',
-    'RokNarozeni': 'birth_year_range'
+    'DatumUmrtiLPZ': 'death_date_lpz',  # all cause death date
+    'DatumUmrti': 'death_date',  # other death date, not used
+    'RokNarozeni': 'birth_year_range',
+    'Infekce': 'Infection'     # infection count. Need to filter out 2 or more to eliminate duplicate death reports (can't do by ID number) 
 })
+
+# if you got infected more than once, it will create a duplicate record (with a different ID) so
+# remove those records so we don't double count the deaths.
+
+# Remove records where Infection > 1
+a = a[(a['Infection'].fillna(0).astype(int) <= 1)]
+
+
 
 # Convert relevant columns to datetime (ISO format assumed: YYYY-MM-DD)
 # Extract cohort year from birth year range (e.g., '1970-1974' -> 1970)
 a['birth_year'] = a['birth_year_range'].str.extract(r'(\d{4})').astype(float)
-# Limit to cohorts born 1920-2000
+# Limit to cohorts born 1900-2020
+# This will also convert NaN birth years to NaN, which we can handle later
 a = a[(a['birth_year'] >= 1900) & (a['birth_year'] <= 2020)]
 
 # Parse ISO week format for first dose and death date
