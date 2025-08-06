@@ -1,5 +1,13 @@
-# This used to be named cfr_by_week.py but now is KCOR.py. 
-# tl;dr: cd code; make KCOR
+# This is KCOR.py, the main program to generate the KCOR output for the Czechia data.
+#
+# This file used to be named cfr_by_week.py but now is KCOR.py. 
+# INSTRUCTIONS:
+# To generate the files: cd code; make KCOR
+# The 3 Output files are in the data directory, named:
+#    KCOR.cfr_analysis.csv (for CFR analysis) 
+#    KCOR.main.csv (for use with KCOR)
+#    KCOR.shot_rollout_analysis.csv (for shot rollout analysis)
+
 #
 # This generates the KCOR output.
 # fixed on 8/5/2025 to filter out rows with infection of 2 or more

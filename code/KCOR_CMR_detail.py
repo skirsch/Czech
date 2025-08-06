@@ -1,9 +1,20 @@
 # 
 # KCOR_CMR_detail.py
 #
-# This is a complement to KCOR.py. It generates output to allow computation of CMR (Crude Mortality Rate) for vaccinated and unvaccinated individuals.
+# This is a complement to KCOR.py. It generates output to allow computation 
+# of CMR (Crude Mortality Rate) for vaccinated and unvaccinated individuals.
+# It is not a replacement for KCOR.py, but rather an additional analysis script containing population and death data.
+# enabling the the analysis of mortality trends in relation to vaccination status.
+# It uses the same data format as KCOR.py.
 # it does not require the KCOR.py script to run, but it uses the same data format.
 # It only looks at first dose vaccination data and ACM death dates.
+#
+# To run this script, you need to have the data in the same format as KCOR.py. I run it from VS Code (execute the buffer).
+
+# Output file:
+#   Czech/analysis/fixed_cohort_cmr.csv
+# This is then imported into this spreadsheet for analysis.
+#   Czech/analysis/fixed_cohort_cmr.xlsx
 #
 # This script processes vaccination and death data to compute CMR (Crude Mortality Rate)   
 # It loads a dataset, processes it to extract relevant information, computes weekly death counts for vaccinated and unvaccinated individuals, and calculates CMR per 100,000 population per year.
