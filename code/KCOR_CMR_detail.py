@@ -2,7 +2,20 @@
 # KCOR_CMR_detail.py
 #
 # This is a complement to KCOR.py. It generates output to allow computation 
-# of CMR (Crude Mortality Rate) for vaccinated and unvaccinated individuals.
+# of CMR (Crude Mortality Rate) for dose 0, 1, 2, 3, and 4 by outputting alive and dead counts by week, birth cohort, and vaccination status.
+#
+# You can now compute the instantaneous CMR for each dose group by week, birth cohort, and vaccination status.
+# 
+# You can also compute the HR (Hazard Ratio) for each dose group by week, birth cohort, and vaccination status
+# by dividing the CMR of the vaccinated group by the CMR of the unvaccinated group.
+# More importantly, can compute the HR for dose 2 vs. dose 1, dose 3 vs. dose 2, and dose 4 vs. dose 3, etc.
+# 
+# Comparing HRs between dose groups (dose 1 or more) can provide insights into the relative mortality risk associated with each vaccination dose.
+# and it eliminates any HVE bias since it doesn't compare vaccinated to unvaccinated.
+#
+# # This script is designed to analyze mortality trends in relation to vaccination status and there is a list of
+# enrollment dates for dose groups.
+# 
 # It is not a replacement for KCOR.py, but rather an additional analysis script containing population and death data.
 # enabling the the analysis of mortality trends in relation to vaccination status.
 # It uses the same data format as KCOR.py.
@@ -22,9 +35,17 @@
 # 
 # It also shows deaths by birth cohort and vaccination status over time, allowing for analysis of mortality trends in relation to vaccination status.
 #     
+
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
+
+# Define enrollment dates for dose groups
+# These dates are used to determine the dose group for each individual based on their vaccination dates.
+enrollment_dates = ["2021-06-14", "2022-02-07"]
+
 
 ## Load the dataset with explicit types and rename columns to English
 a = pd.read_csv(
@@ -72,138 +93,127 @@ a['birth_year'] = pd.to_numeric(a['birth_year'], errors='coerce')
 ## Only use LPZ death date, ignore other death date
 a = a[~((a['death_date_lpz'].notnull()) & (a['first_dose_date'] > a['death_date_lpz']))]
 
-# Define fixed vaccination status as of 2021-24
-enrollment_date = pd.to_datetime("2021-06-14")  # ISO week 2021-24 starts on 2021-06-14
-a['fixed_vax'] = a['first_dose_date'] <= enrollment_date # Matches KCOR.py logic
 
-# Assign birth cohort
+# --------- NEW: Dose group analysis for multiple enrollment dates ---------
 
-print("birth_year head:", a['birth_year'].head())
-a['born'] = a['birth_year'].apply(lambda x: str(int(x)) if pd.notnull(x) else "unknown")
-
-# All further processing is done on a copy
-# so can re-run from here without reloading
-
-df = a.copy()
-
-# Restrict to deaths only
-print("death_date_lpz notnull count:", a['death_date_lpz'].notnull().sum())
-print("death_date_lpz head:", a['death_date_lpz'].head(20))
-# For deaths, filter to those with a death date
-deads_df = a[a['death_date_lpz'].notnull()].copy()
-deads_df['date'] = deads_df['death_date_lpz']
-
-# Compute weekly death counts for fixed-vax and fixed-unvax
-weeks = sorted(df['week'].unique())
-cohorts = sorted(df['born'].unique())
-full_index = pd.MultiIndex.from_product([weeks, cohorts], names=['week', 'born'])
-deads = deads_df.groupby(['week', 'born', 'fixed_vax']).size().reset_index(name='deaths')
-deads_pivot = deads.pivot_table(index=['week', 'born'], columns='fixed_vax', values='deaths', fill_value=0)
-deads_pivot = deads_pivot.rename(columns={False: 'unvax_dead', True: 'vax_dead'})
-deads_pivot = deads_pivot.reindex(full_index, fill_value=0).reset_index()
-print("deads born:", deads_pivot['born'].unique())
-
-# Population base as of 2021-24
-## Use a copy of the already loaded and processed data for population base
-a_cohort = a.copy()  # Do NOT filter by death_date_lpz
-# Only include individuals alive at the enrollment date
-a_cohort = a_cohort[(a_cohort['death_date_lpz'].isna()) | (a_cohort['death_date_lpz'] > enrollment_date)]
-pop_base = a_cohort.groupby(['born', 'fixed_vax']).size().reset_index(name='pop')
-pop_pivot = pop_base.pivot_table(index=['born'], columns='fixed_vax', values='pop', fill_value=0)
-pop_pivot = pop_pivot.rename(columns={False: 'unvax_pop', True: 'vax_pop'}).reset_index()
-print("pop_base born:", pop_pivot['born'].unique())
-
-# Merge population with death counts
-
-# Merge deaths and population base on all relevant keys using an outer join
+### YOU CAN RESTART HERE if code bombs out. This saves time.
 
 
-# Merge deaths and population base on birth cohort and week
-merged = pd.merge(
-    deads_pivot,
-    pop_pivot,
-    on=['born'],
-    how='left'
-)
+excel_out_path = "analysis/fixed_cohort_cmr_dosegroups.xlsx"
+excel_writer = pd.ExcelWriter(excel_out_path, engine='xlsxwriter')
 
-# Forward fill population columns for each cohort so every week has the correct population
-for col in ['vax_pop', 'unvax_pop']:
-    merged[col] = merged.groupby('born')[col].ffill().bfill()
+# Dose date columns
+dose_date_cols = [
+    (0, None),
+    (1, 'first_dose_date'),
+    (2, 'Datum_Druha_davka'),
+    (3, 'Datum_Treti_davka'),
+    (4, 'Datum_Ctvrta_davka'),
+]
 
-# Only compute CMR for weeks after the enrollment date
-enrollment_week = pd.to_datetime('2021-06-14').strftime('%G-%V')
-merged = merged[merged['week'] >= enrollment_week]
+for enroll_date_str in enrollment_dates:
+    enrollment_date = pd.to_datetime(enroll_date_str)
+    a_copy = a.copy()
+    # Add dose date columns if not already present
+    if 'Datum_Druha_davka' not in a_copy.columns:
+        a_copy['Datum_Druha_davka'] = pd.NaT
+    if 'Datum_Treti_davka' not in a_copy.columns:
+        a_copy['Datum_Treti_davka'] = pd.NaT
+    if 'Datum_Ctvrta_davka' not in a_copy.columns:
+        a_copy['Datum_Ctvrta_davka'] = pd.NaT
+    # Convert to datetime
+    for col in ['first_dose_date', 'Datum_Druha_davka', 'Datum_Treti_davka', 'Datum_Ctvrta_davka']:
+        a_copy[col] = pd.to_datetime(a_copy[col], format='%Y-%m-%d', errors='coerce')
+    # Assign dose group as of enrollment date
+    def get_dose_group(row):
+        if pd.notna(row['Datum_Ctvrta_davka']) and row['Datum_Ctvrta_davka'] <= enrollment_date:
+            return 4
+        elif pd.notna(row['Datum_Treti_davka']) and row['Datum_Treti_davka'] <= enrollment_date:
+            return 3
+        elif pd.notna(row['Datum_Druha_davka']) and row['Datum_Druha_davka'] <= enrollment_date:
+            return 2
+        elif pd.notna(row['first_dose_date']) and row['first_dose_date'] <= enrollment_date:
+            return 1
+        else:
+            return 0
+    a_copy['dose_group'] = a_copy.apply(get_dose_group, axis=1)
+    # Assign birth cohort
+    a_copy['born'] = a_copy['birth_year'].apply(lambda x: str(int(x)) if pd.notnull(x) else "unknown")
+    # Add week column if not present
+    if 'week' not in a_copy.columns:
+        a_copy['week'] = a_copy['death_date_lpz'].dt.strftime('%G-%V').astype(str)
+    # Restrict to deaths only
+    deads_df = a_copy[a_copy['death_date_lpz'].notnull()].copy()
+    deads_df['date'] = deads_df['death_date_lpz']
+    # Compute weekly death counts for each dose group
+    weeks = sorted(a_copy['week'].unique())
+    cohorts = sorted(a_copy['born'].unique())
+    dose_groups = [0, 1, 2, 3, 4]
+    full_index = pd.MultiIndex.from_product([weeks, cohorts, dose_groups], names=['week', 'born', 'dose_group'])
+    deads = deads_df.groupby(['week', 'born', 'dose_group']).size().reset_index(name='deaths')
+    deads_pivot = deads.pivot_table(index=['week', 'born'], columns='dose_group', values='deaths', fill_value=0)
+    print(f"[DEBUG] deads_pivot columns before int cast: {list(deads_pivot.columns)}")
+    # Ensure columns are integers and all dose groups 0-4 are present
+    deads_pivot.columns = [int(c) for c in deads_pivot.columns]
+    print(f"[DEBUG] deads_pivot columns after int cast: {list(deads_pivot.columns)}")
+    for d in dose_groups:
+        if d not in deads_pivot.columns:
+            deads_pivot[d] = 0
+    deads_pivot = deads_pivot[dose_groups] if len(deads_pivot) > 0 else pd.DataFrame(columns=dose_groups)
+    print(f"[DEBUG] deads_pivot columns after fill: {list(deads_pivot.columns)}")
+    print(f"[DEBUG] deads_pivot head:\n{deads_pivot.head()}")
+    deads_pivot = deads_pivot.reset_index()
+    # Reindex to ensure all week/born combinations exist
+    deads_pivot = deads_pivot.set_index(['week', 'born']).reindex(
+        pd.MultiIndex.from_product([weeks, cohorts], names=['week', 'born']), fill_value=0
+    ).reset_index()
 
-# Sort by cohort and week for cumulative calculation
-merged = merged.sort_values(['born', 'week'])
+    # Population base as of enrollment date
+    a_cohort = a_copy[(a_copy['death_date_lpz'].isna()) | (a_copy['death_date_lpz'] > enrollment_date)]
+    pop_base = a_cohort.groupby(['born', 'dose_group']).size().reset_index(name='pop')
+    pop_pivot = pop_base.pivot_table(index=['born'], columns='dose_group', values='pop', fill_value=0)
+    print(f"[DEBUG] pop_pivot columns before int cast: {list(pop_pivot.columns)}")
+    # Ensure columns are integers and all dose groups 0-4 are present
+    pop_pivot.columns = [int(c) for c in pop_pivot.columns]
+    print(f"[DEBUG] pop_pivot columns after int cast: {list(pop_pivot.columns)}")
+    for d in dose_groups:
+        if d not in pop_pivot.columns:
+            pop_pivot[d] = 0
+    pop_pivot = pop_pivot[dose_groups] if len(pop_pivot) > 0 else pd.DataFrame(columns=dose_groups)
+    print(f"[DEBUG] pop_pivot columns after fill: {list(pop_pivot.columns)}")
+    print(f"[DEBUG] pop_pivot head:\n{pop_pivot.head()}")
+    pop_pivot = pop_pivot.reset_index()
 
-# Compute cumulative deaths for each cohort and vaccination status up to each week
-merged['cum_vax_dead'] = merged.groupby(['born'])['vax_dead'].cumsum()
-merged['cum_unvax_dead'] = merged.groupby(['born'])['unvax_dead'].cumsum()
+    # Merge deaths and population base
+    merged = pd.merge(deads_pivot, pop_pivot, on='born', how='left', suffixes=('_dead', '_pop'))
+    print(f"[DEBUG] merged columns before CMR: {list(merged.columns)}")
+    print(f"[DEBUG] merged head:\n{merged.head()}")
+    # For each dose group, compute cumulative deaths, alive at start, CMR
+    for dose in dose_groups:
+        dead_col = f'{dose}_dead'
+        pop_col = f'{dose}_pop'
+        merged[f'cum_dead_{dose}'] = merged.groupby('born')[dead_col].cumsum()
+        merged[f'alive_start_{dose}'] = merged[f'{pop_col}'] - merged[f'cum_dead_{dose}']
+        merged[f'cmr_{dose}'] = merged[dead_col] / merged[f'alive_start_{dose}'] * 365 / 7 * 1e5
+    # Save to CSV for this enrollment date
+    out_cols = (
+        ['week', 'born']
+        + [f'cmr_{d}' for d in dose_groups]
+        + [f'alive_start_{d}' for d in dose_groups]
+        + [f'{d}_dead' for d in dose_groups]
+        + [f'{d}_pop' for d in dose_groups]
+    )
+    merged_out = merged[out_cols].copy()
+    merged_out = merged_out[merged_out['week'].notna()]
+    # Convert to int for Excel compatibility (only for appropriate columns)
+    for col in [f'cmr_{d}' for d in dose_groups] + [f'alive_start_{d}' for d in dose_groups] + [f'{d}_dead' for d in dose_groups] + [f'{d}_pop' for d in dose_groups]:
+        merged_out[col] = merged_out[col].replace([np.inf, -np.inf], np.nan).fillna(0).astype(int)
+    out_path = f"analysis/fixed_cohort_cmr_{enroll_date_str}.csv"
+    # Write to Excel sheet
+    sheet_name = enroll_date_str.replace('-', '_')
+    merged_out.to_excel(excel_writer, sheet_name=sheet_name, index=False)
+    print(f"Added sheet {sheet_name} to {excel_out_path}")
 
-# Number alive at start of week (before deaths in that week)
-merged['vax_alive_start'] = merged['vax_pop'] - merged['cum_vax_dead']
-merged['unvax_alive_start'] = merged['unvax_pop'] - merged['cum_unvax_dead']
-
-# Number dead in that week (already present)
-merged['vax_dead_week'] = merged['vax_dead']
-merged['unvax_dead_week'] = merged['unvax_dead']
-
-# Number alive at end of week (after deaths in that week)
-merged['vax_alive_end'] = merged['vax_alive_start'] + merged['vax_dead_week']
-merged['unvax_alive_end'] = merged['unvax_alive_start'] + merged['unvax_dead_week']
-
-# For CMR calculation, use alive at start of week
-merged['vax_alive'] = merged['vax_alive_start']
-merged['unvax_alive'] = merged['unvax_alive_start']
-
-# Compute CMR per 100,000 per year (weekly deaths scaled) using alive population
-merged['vax_cmr'] = merged['vax_dead'] / merged['vax_alive'] * 365 / 7 * 1e5
-merged['unvax_cmr'] = merged['unvax_dead'] / merged['unvax_alive'] * 365 / 7 * 1e5
-
-# Save to CSV or return dataframe as needed
-
-# Compute all-ages summary for each week
-
-# Compute initial population for all ages
-
-# Get initial population for all ages (first week per cohort)
-first_week_mask = merged.groupby('born')['week'].transform('min') == merged['week']
-initial_vax_pop = merged.loc[first_week_mask, 'vax_pop'].sum()
-initial_unvax_pop = merged.loc[first_week_mask, 'unvax_pop'].sum()
-
-# Compute cumulative deaths for all ages per week
-all_ages_deaths = merged.groupby('week').agg({
-    'vax_dead_week': 'sum',
-    'unvax_dead_week': 'sum'
-}).reset_index()
-all_ages_deaths['cum_vax_dead'] = all_ages_deaths['vax_dead_week'].cumsum()
-all_ages_deaths['cum_unvax_dead'] = all_ages_deaths['unvax_dead_week'].cumsum()
-
-# Alive at start of week = initial population - cumulative deaths
-all_ages_deaths['vax_alive_start'] = initial_vax_pop - all_ages_deaths['cum_vax_dead']
-all_ages_deaths['unvax_alive_start'] = initial_unvax_pop - all_ages_deaths['cum_unvax_dead']
-
-all_ages_deaths['born'] = 'all_ages'
-all_ages_deaths['vax_cmr'] = all_ages_deaths['vax_dead_week'] / all_ages_deaths['vax_alive_start'] * 365 / 7 * 1e5
-all_ages_deaths['unvax_cmr'] = all_ages_deaths['unvax_dead_week'] / all_ages_deaths['unvax_alive_start'] * 365 / 7 * 1e5
-
-# Reorder columns to match merged
-all_ages = all_ages_deaths[['week', 'born', 'vax_cmr', 'unvax_cmr', 'vax_alive_start', 'unvax_alive_start', 'vax_dead_week', 'unvax_dead_week']]
-# Remove rows with NaN week from both merged and all_ages before concatenation
-merged_clean = merged[['week', 'born', 'vax_cmr', 'unvax_cmr', 'vax_alive_start', 'unvax_alive_start', 'vax_dead_week', 'unvax_dead_week']].copy()
-merged_clean = merged_clean[merged_clean['week'].notna()]
-all_ages = all_ages[all_ages['week'].notna()]
-
-# Append all-ages rows to merged
-merged_out = pd.concat([merged_clean, all_ages], ignore_index=True)
-
-# Remove rows with NaN week
-merged_out = merged_out[merged_out['week'].notna()]
-
-# Convert CMR columns to integer type for Excel compatibility
-for col in ['vax_cmr', 'unvax_cmr', 'vax_alive_start', 'unvax_alive_start', 'vax_dead_week', 'unvax_dead_week']:
-    merged_out[col] = merged_out[col].fillna(0).astype(int)
-
-merged_out.to_csv("analysis/fixed_cohort_cmr.csv", index=False)
-print(merged_out.head())
+# Save the Excel file after all sheets are added
+excel_writer.close()
+print(f"Wrote all dose group CMRs to {excel_out_path}")
