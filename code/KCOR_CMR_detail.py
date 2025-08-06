@@ -44,23 +44,19 @@ import os
 
 # Define enrollment dates for dose groups
 # These dates are used to determine the dose group for each individual based on their vaccination dates.
-enrollment_dates = ["2021-06-14", "2022-02-07"]
-
+enrollment_dates = ["2021-06-14", "2022-02-07", "2023-02-06"]
+file_name = "data/vax_24.csv" # The input file name containing vaccination and death data
 
 ## Load the dataset with explicit types and rename columns to English
 a = pd.read_csv(
-    "../czech/data/vax_24.csv",
-    dtype={
-        'Datum_Prvni_davka': str,
-        'DatumUmrtiLPZ': str,
-        'RokNarozeni': str
-    },
+    file_name,
+    dtype=str,  # Force all columns to string to preserve ISO week format
     low_memory=False
 )
 a = a.rename(columns={
     'Datum_Prvni_davka': 'first_dose_date',
     'DatumUmrtiLPZ': 'death_date_lpz',  # all cause death date
-    'DatumUmrti': 'death_date',  # other death date, not used
+    # 'DatumUmrti': 'death_date',  # other death date, not used
     'RokNarozeni': 'birth_year_range',
     'Infekce': 'Infection'     # infection count. Need to filter out 2 or more to eliminate duplicate death reports (can't do by ID number) 
 })
@@ -78,7 +74,7 @@ a = a[(a['Infection'].fillna(0).astype(int) <= 1)]
 a['birth_year'] = a['birth_year_range'].str.extract(r'(\d{4})').astype(float)
 # Limit to cohorts born 1900-2020
 # This will also convert NaN birth years to NaN, which we can handle later
-a = a[(a['birth_year'] >= 1900) & (a['birth_year'] <= 2020)]
+## Remove birth year filtering so all birthdates, including blanks, are included
 
 # Parse ISO week format for first dose and death date
 a['first_dose_date'] = pd.to_datetime(a['first_dose_date'].str.replace(r'[^0-9-]', '', regex=True) + '-1', format='%G-%V-%u', errors='coerce')
@@ -114,17 +110,31 @@ dose_date_cols = [
 for enroll_date_str in enrollment_dates:
     enrollment_date = pd.to_datetime(enroll_date_str)
     a_copy = a.copy()
+    # Exclude individuals who died before the enrollment date
+    a_copy = a_copy[(a_copy['death_date_lpz'].isna()) | (a_copy['death_date_lpz'] >= enrollment_date)]
     # Add dose date columns if not already present
-    if 'Datum_Druha_davka' not in a_copy.columns:
-        a_copy['Datum_Druha_davka'] = pd.NaT
-    if 'Datum_Treti_davka' not in a_copy.columns:
-        a_copy['Datum_Treti_davka'] = pd.NaT
-    if 'Datum_Ctvrta_davka' not in a_copy.columns:
-        a_copy['Datum_Ctvrta_davka'] = pd.NaT
-    # Convert to datetime
+    for col in ['Datum_Druha_davka', 'Datum_Treti_davka', 'Datum_Ctvrta_davka']:
+        if col not in a_copy.columns:
+            a_copy[col] = pd.NaT
+    import re
+    def parse_dose_date(val):
+        if pd.isna(val) or val == '':
+            return pd.NaT
+        # Handle pandas Timestamp or numpy datetime64 directly
+        if isinstance(val, (pd.Timestamp, np.datetime64)):
+            return pd.to_datetime(val)
+        s = str(val)
+        # YYYY-MM-DD
+        if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
+            return pd.to_datetime(s, format='%Y-%m-%d', errors='coerce')
+        # YYYY-WW
+        if re.match(r'^\d{4}-\d{2}$', s):
+            # ISO week: YYYY-WW-1 (Monday)
+            return pd.to_datetime(s + '-1', format='%G-%V-%u', errors='coerce')
+        return pd.NaT
     for col in ['first_dose_date', 'Datum_Druha_davka', 'Datum_Treti_davka', 'Datum_Ctvrta_davka']:
-        a_copy[col] = pd.to_datetime(a_copy[col], format='%Y-%m-%d', errors='coerce')
-    # Assign dose group as of enrollment date
+        a_copy[col] = a_copy[col].apply(parse_dose_date)
+    # Assign dose group as of enrollment date (highest dose <= enrollment date)
     def get_dose_group(row):
         if pd.notna(row['Datum_Ctvrta_davka']) and row['Datum_Ctvrta_davka'] <= enrollment_date:
             return 4
@@ -137,81 +147,87 @@ for enroll_date_str in enrollment_dates:
         else:
             return 0
     a_copy['dose_group'] = a_copy.apply(get_dose_group, axis=1)
-    # Assign birth cohort
-    a_copy['born'] = a_copy['birth_year'].apply(lambda x: str(int(x)) if pd.notnull(x) else "unknown")
-    # Add week column if not present
-    if 'week' not in a_copy.columns:
-        a_copy['week'] = a_copy['death_date_lpz'].dt.strftime('%G-%V').astype(str)
-    # Restrict to deaths only
-    deads_df = a_copy[a_copy['death_date_lpz'].notnull()].copy()
-    deads_df['date'] = deads_df['death_date_lpz']
-    # Compute weekly death counts for each dose group
-    weeks = sorted(a_copy['week'].unique())
-    cohorts = sorted(a_copy['born'].unique())
+    # Debug: print first record's dose dates and assigned group
+    first_row = a_copy.iloc[0]
+    print(f"\nFirst record debug for enrollment date {enroll_date_str}:")
+    print(f"  Original first_dose_date: {a.iloc[0]['first_dose_date']}")
+    print(f"  Parsed first_dose_date: {first_row['first_dose_date']}")
+    print(f"  Enrollment date: {enrollment_date}")
+    print(f"  Assigned dose group: {first_row['dose_group']}")
+    # Make 'born' an integer, using -1 for blanks/NaN
+    a_copy['born'] = a_copy['birth_year'].apply(lambda x: int(x) if pd.notnull(x) else -1)
+
+    # Print starting alive counts for each (born, dose_group) in the entire database (ignore death dates)
+    print(f"\nStarting alive counts for enrollment date {enroll_date_str} (born, dose_group):")
+    alive_counts = a_copy.groupby(['born', 'dose_group']).size().reset_index(name='alive')
+    print(alive_counts)
+    print(f"Total alive for enrollment date {enroll_date_str}: {alive_counts['alive'].sum()}")
+    # Print breakdown by dose group
+    dose_group_counts = a_copy.groupby('dose_group').size()
+    print(f"Dose group breakdown for enrollment date {enroll_date_str}:")
+    for d in [0, 1, 2, 3, 4]:
+        print(f"  Dose {d}: {dose_group_counts.get(d, 0)}")
     dose_groups = [0, 1, 2, 3, 4]
-    full_index = pd.MultiIndex.from_product([weeks, cohorts, dose_groups], names=['week', 'born', 'dose_group'])
-    deads = deads_df.groupby(['week', 'born', 'dose_group']).size().reset_index(name='deaths')
-    deads_pivot = deads.pivot_table(index=['week', 'born'], columns='dose_group', values='deaths', fill_value=0)
-    print(f"[DEBUG] deads_pivot columns before int cast: {list(deads_pivot.columns)}")
-    # Ensure columns are integers and all dose groups 0-4 are present
-    deads_pivot.columns = [int(c) for c in deads_pivot.columns]
-    print(f"[DEBUG] deads_pivot columns after int cast: {list(deads_pivot.columns)}")
+    # Compute population base: count of people in each (born, dose_group)
+    pop_base = a_copy.groupby(['born', 'dose_group']).size().reset_index(name='pop')
+    # Compute deaths per (week, born, dose_group)
+    deaths = a_copy[a_copy['death_date_lpz'].notnull()].groupby(['week', 'born', 'dose_group']).size().reset_index(name='dead')
+    # Get all weeks in the study period (from min to max week in the data, not just those with deaths)
+    # Use all first and last death dates, plus all dose dates, to get the full week range
+    all_dates = pd.concat([
+        a_copy['first_dose_date'],
+        a_copy['Datum_Druha_davka'],
+        a_copy['Datum_Treti_davka'],
+        a_copy['Datum_Ctvrta_davka'],
+        a_copy['death_date_lpz']
+    ]).dropna()
+    min_week = all_dates.min().isocalendar().week
+    min_year = all_dates.min().isocalendar().year
+    max_week = all_dates.max().isocalendar().week
+    max_year = all_dates.max().isocalendar().year
+    # Build all weeks between min and max
+    from datetime import date, timedelta
+    def week_year_iter(y1, w1, y2, w2):
+        d = date.fromisocalendar(y1, w1, 1)
+        dend = date.fromisocalendar(y2, w2, 1)
+        while d <= dend:
+            yield d.isocalendar()[:2]
+            # next week
+            d += timedelta(days=7)
+    all_weeks = [f"{y}-{str(w).zfill(2)}" for y, w in week_year_iter(min_year, min_week, max_year, max_week)]
+    cohorts = sorted(a_copy['born'].dropna().unique())
+    # Build MultiIndex for all (week, born)
+    index = pd.MultiIndex.from_product([all_weeks, cohorts], names=['week', 'born'])
+    # Prepare output DataFrame
+    out = pd.DataFrame(index=index)
     for d in dose_groups:
-        if d not in deads_pivot.columns:
-            deads_pivot[d] = 0
-    deads_pivot = deads_pivot[dose_groups] if len(deads_pivot) > 0 else pd.DataFrame(columns=dose_groups)
-    print(f"[DEBUG] deads_pivot columns after fill: {list(deads_pivot.columns)}")
-    print(f"[DEBUG] deads_pivot head:\n{deads_pivot.head()}")
-    deads_pivot = deads_pivot.reset_index()
-    # Reindex to ensure all week/born combinations exist
-    deads_pivot = deads_pivot.set_index(['week', 'born']).reindex(
-        pd.MultiIndex.from_product([weeks, cohorts], names=['week', 'born']), fill_value=0
-    ).reset_index()
+        # deaths for this group
+        deaths_d = deaths[deaths['dose_group'] == d].set_index(['week', 'born'])['dead']
+        out[f'{d}_dead'] = deaths_d.reindex(index, fill_value=0).values
+        # pop for this group (initial for all weeks)
+        pop_d = pop_base[pop_base['dose_group'] == d].set_index('born')['pop']
+        out[f'{d}_pop'] = [pop_d.get(born, 0) for week, born in out.index]
 
-    # Population base as of enrollment date
-    a_cohort = a_copy[(a_copy['death_date_lpz'].isna()) | (a_copy['death_date_lpz'] > enrollment_date)]
-    pop_base = a_cohort.groupby(['born', 'dose_group']).size().reset_index(name='pop')
-    pop_pivot = pop_base.pivot_table(index=['born'], columns='dose_group', values='pop', fill_value=0)
-    print(f"[DEBUG] pop_pivot columns before int cast: {list(pop_pivot.columns)}")
-    # Ensure columns are integers and all dose groups 0-4 are present
-    pop_pivot.columns = [int(c) for c in pop_pivot.columns]
-    print(f"[DEBUG] pop_pivot columns after int cast: {list(pop_pivot.columns)}")
+    out = out.reset_index()
+    out['week'] = out['week'].astype(str)
+    out['born'] = out['born'].astype('Int64')
+
+    # Overwrite population columns to reflect attrition from deaths (vectorized)
+    out = out.sort_values(['born', 'week'])
     for d in dose_groups:
-        if d not in pop_pivot.columns:
-            pop_pivot[d] = 0
-    pop_pivot = pop_pivot[dose_groups] if len(pop_pivot) > 0 else pd.DataFrame(columns=dose_groups)
-    print(f"[DEBUG] pop_pivot columns after fill: {list(pop_pivot.columns)}")
-    print(f"[DEBUG] pop_pivot head:\n{pop_pivot.head()}")
-    pop_pivot = pop_pivot.reset_index()
-
-    # Merge deaths and population base
-    merged = pd.merge(deads_pivot, pop_pivot, on='born', how='left', suffixes=('_dead', '_pop'))
-    print(f"[DEBUG] merged columns before CMR: {list(merged.columns)}")
-    print(f"[DEBUG] merged head:\n{merged.head()}")
-    # For each dose group, compute cumulative deaths, alive at start, CMR
-    for dose in dose_groups:
-        dead_col = f'{dose}_dead'
-        pop_col = f'{dose}_pop'
-        merged[f'cum_dead_{dose}'] = merged.groupby('born')[dead_col].cumsum()
-        merged[f'alive_start_{dose}'] = merged[f'{pop_col}'] - merged[f'cum_dead_{dose}']
-        merged[f'cmr_{dose}'] = merged[dead_col] / merged[f'alive_start_{dose}'] * 365 / 7 * 1e5
-    # Save to CSV for this enrollment date
-    out_cols = (
-        ['week', 'born']
-        + [f'cmr_{d}' for d in dose_groups]
-        + [f'alive_start_{d}' for d in dose_groups]
-        + [f'{d}_dead' for d in dose_groups]
-        + [f'{d}_pop' for d in dose_groups]
-    )
-    merged_out = merged[out_cols].copy()
-    merged_out = merged_out[merged_out['week'].notna()]
-    # Convert to int for Excel compatibility (only for appropriate columns)
-    for col in [f'cmr_{d}' for d in dose_groups] + [f'alive_start_{d}' for d in dose_groups] + [f'{d}_dead' for d in dose_groups] + [f'{d}_pop' for d in dose_groups]:
-        merged_out[col] = merged_out[col].replace([np.inf, -np.inf], np.nan).fillna(0).astype(int)
-    out_path = f"analysis/fixed_cohort_cmr_{enroll_date_str}.csv"
+        pop_col = f'{d}_pop'
+        dead_col = f'{d}_dead'
+        for born, group in out.groupby('born'):
+            pop = group[pop_col].values.astype(int)
+            dead = group[dead_col].values.astype(int)
+            alive = np.empty_like(pop)
+            alive[0] = pop[0]
+            for i in range(1, len(pop)):
+                alive[i] = max(alive[i-1] - dead[i-1], 0)
+            out.loc[group.index, pop_col] = alive
     # Write to Excel sheet
     sheet_name = enroll_date_str.replace('-', '_')
-    merged_out.to_excel(excel_writer, sheet_name=sheet_name, index=False)
+    out.to_excel(excel_writer, sheet_name=sheet_name, index=False)
     print(f"Added sheet {sheet_name} to {excel_out_path}")
 
 # Save the Excel file after all sheets are added
