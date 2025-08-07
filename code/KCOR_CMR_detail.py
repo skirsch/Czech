@@ -1,6 +1,10 @@
 # 
 # KCOR_CMR_detail.py
 #
+# Analysis script for HR for vaccination dose groups
+#
+# See analysis in the analysis/fixed_cohort_HR.xlsx file.
+#
 # This is a complement to KCOR.py. It generates output to allow computation 
 # of CMR (Crude Mortality Rate) for dose 0, 1, 2, 3, and 4 by outputting alive and dead counts by week, birth cohort, and vaccination status.
 #
