@@ -1,5 +1,5 @@
 # KCOR output
-KCOR_summary=$(datadir)/KCOR  # it will append suffixes for the output .csv files
+KCOR_summary=$(datadir)/KCOR.xlsx  # it will create various sheets for different enrollment dates
 KCOR.py=KCOR.py
 KCOR_files=$(KCOR_summary)
 
@@ -7,6 +7,7 @@ KCOR: $(KCOR_files)
 
 $(KCOR_files): $(vax_24_source) $(KCOR.py)
 	@echo "Making the KCOR summary file `date`"
+	@echo "Output file: $(KCOR_summary)"
 	@python $(KCOR.py) $(vax_24_source) $(KCOR_summary)
 	@echo "Finished at `date`"
 # Makefile to generate all the analysis files
@@ -33,8 +34,7 @@ time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt
 
 # for vax_24
 vax_24_source=$(datadir)/vax_24.csv
-# uncomment for testing
-# vax_24_source=$(datadir)/sample.csv # for debugging for vax_24 and cfr_by_week
+vax_24_source=$(datadir)/vax_24_1000.csv # for testing
 
 
 vax_24_summary=$(datadir)/vax_24_summary.csv
