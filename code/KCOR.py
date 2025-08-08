@@ -156,7 +156,8 @@ def main(data_file, output_file):
 
     # Enrollment dates: use the specified ISO week list
     enrollment_dates = ['2021-24', '2021-13', '2021-41', '2022-06', '2023-06', '2024-06']
-
+    # enrollment_dates = ['2021-24', '2022-06']   # complete faster for testing
+                        
     dose_date_cols = [
         'Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose',
         'Date_FourthDose', 'Date_FifthDose', 'Date_SixthDose'
@@ -182,15 +183,42 @@ def main(data_file, output_file):
         return datetime.datetime.strptime(f'{year}-W{week}-1', "%G-W%V-%u")
 
     
+    # Precompute dose group for all enrollment dates for all rows (vectorized)
+    dose_dates = data[dose_date_cols].copy()
+    # Convert all dose date columns to datetime (already done above, but ensure type)
+    for col in dose_date_cols:
+        dose_dates[col] = pd.to_datetime(dose_dates[col], errors='coerce')
+
     with ExcelWriter(output_file, engine='xlsxwriter') as writer:
         for enroll_str in enrollment_dates:
             print(f"Processing enrollment date {enroll_str} at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             enroll_date = iso_week_to_date(enroll_str).date()
+            # For each row, find the highest dose received on or before enroll_date (vectorized)
+            dose_mask = (dose_dates <= pd.Timestamp(enroll_date))
+            # For each row, find the last True in dose_mask (i.e., highest dose group)
+            dose_group = dose_mask.apply(lambda row: row[::-1].idxmax() if row.any() else None, axis=1)
+            # Map dose column name to group number (0 if none, else index+1)
+            dose_group_num = dose_group.map({
+                'Date_FirstDose': 1,
+                'Date_SecondDose': 2,
+                'Date_ThirdDose': 3,
+                'Date_FourthDose': 4,
+                'Date_FifthDose': 5,
+                'Date_SixthDose': 6
+            }).fillna(0).astype(int)
+            # Cap at 5 (as before)
+            dose_group_num = dose_group_num.clip(upper=5)
             df = data.copy()
-            df['dose_group'] = df.apply(lambda row: get_dose_group(row, enroll_date), axis=1)
-            # One-hot encode dose_group for all records
+            df['dose_group'] = dose_group_num
+            # One-hot encode dose_group (vectorized)
+            dose_onehot = pd.get_dummies(df['dose_group'], prefix='dose')
+            # Ensure all dose_0 ... dose_6 columns exist
             for i in range(7):
-                df[f'dose_{i}'] = (df['dose_group'] == i).astype(int)
+                colname = f'dose_{i}'
+                if colname not in dose_onehot:
+                    dose_onehot[colname] = 0
+            # Concatenate one-hot columns
+            df = pd.concat([df, dose_onehot[[f'dose_{i}' for i in range(7)]]], axis=1)
             # Group by YearOfBirth, DateOfDeath, Gender and sum dose columns (includes deaths and survivors)
             group_cols = ['YearOfBirth', 'DateOfDeath', 'Gender']
             dose_cols = [f'dose_{i}' for i in range(7)]
