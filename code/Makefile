@@ -34,7 +34,7 @@ time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt
 
 # for vax_24
 vax_24_source=$(datadir)/vax_24.csv
-vax_24_source=$(datadir)/vax_24_1000.csv # for testing
+# vax_24_source=$(datadir)/vax_24_1000.csv # for testing
 
 
 vax_24_summary=$(datadir)/vax_24_summary.csv

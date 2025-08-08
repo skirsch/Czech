@@ -140,11 +140,22 @@ def main(data_file, output_file):
     # Remove records where Infection > 1
     data = data[(data['Infection'].fillna(0).astype(int) <= 1)]
 
-    # Transform YearOfBirth to extract the first year as an integer, handling missing or invalid entries
-    YOB='YearOfBirth'
+    # Transform YearOfBirth to 4-digit integer year, missing/invalid as -1
+    def parse_year(y):
+        y_str = str(y)
+        if len(y_str) == 1:
+            return -1
+        try:
+            year = int(y_str[:4])
+            if 1900 <= year <= datetime.datetime.now().year:
+                return year
+        except Exception:
+            pass
+        return -1
+    data['YearOfBirth'] = data['YearOfBirth'].apply(parse_year).astype(int)
 
     # Enrollment dates: use the specified ISO week list
-    enrollment_dates = ['2021-24', '2021-13', '2021-41', '2022-06', '2023-06']
+    enrollment_dates = ['2021-24', '2021-13', '2021-41', '2022-06', '2023-06', '2024-06']
 
     dose_date_cols = [
         'Date_FirstDose', 'Date_SecondDose', 'Date_ThirdDose',
@@ -170,24 +181,29 @@ def main(data_file, output_file):
         year, week = iso_week_str.split('-')
         return datetime.datetime.strptime(f'{year}-W{week}-1', "%G-W%V-%u")
 
-    output_excel = output_file + '.xlsx'
-    with ExcelWriter(output_excel, engine='xlsxwriter') as writer:
+    
+    with ExcelWriter(output_file, engine='xlsxwriter') as writer:
         for enroll_str in enrollment_dates:
+            print(f"Processing enrollment date {enroll_str} at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             enroll_date = iso_week_to_date(enroll_str).date()
             df = data.copy()
             df['dose_group'] = df.apply(lambda row: get_dose_group(row, enroll_date), axis=1)
-            # Only consider deaths up to the enrollment date
-            df['is_dead'] = df['DateOfDeath'].apply(lambda x: pd.notnull(x) and x <= enroll_date)
-            # Aggregate deaths per dose group
-            summary = df.groupby('dose_group')['is_dead'].sum().reindex(range(6), fill_value=0)
-            # Prepare output DataFrame
-            out_df = pd.DataFrame({
-                'dose_group': range(6),
-                'deaths': summary.values
-            })
-            out_df.to_excel(writer, sheet_name=enroll_str, index=False)
+            # One-hot encode dose_group for all records
+            for i in range(7):
+                df[f'dose_{i}'] = (df['dose_group'] == i).astype(int)
+            # Group by YearOfBirth, DateOfDeath, Gender and sum dose columns (includes deaths and survivors)
+            group_cols = ['YearOfBirth', 'DateOfDeath', 'Gender']
+            dose_cols = [f'dose_{i}' for i in range(7)]
+            summary = df.groupby(group_cols, dropna=False)[dose_cols].sum().reset_index()
+            # Ensure YearOfBirth is integer and missing is -1
+            summary['YearOfBirth'] = summary['YearOfBirth'].fillna(-1).astype(int)
+            # Add Count column (sum of dose columns per row)
+            summary['Count'] = summary[dose_cols].sum(axis=1)
+            # Write to Excel
+            out_cols = group_cols + dose_cols + ['Count']
+            summary[out_cols].to_excel(writer, sheet_name=enroll_str, index=False)
 
-    print(f"Output written to {output_excel}")
+    print(f"Output written to {output_file}")
 
 
 # Entry point for command-line usage
