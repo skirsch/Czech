@@ -46,9 +46,20 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
+# define the output Excel file path
+# This will contain the CMR for each dose group by week, birth cohort, and vaccination status.
+# This is used to compute the HR (Hazard Ratio) for each dose group by week, birth cohort, and vaccination status
+# and it eliminates any HVE bias since it doesn't compare vaccinated to unvaccinated.
+excel_out_path = "analysis/fixed_cohort_cmr_dosegroups.xlsx"
+excel_writer = pd.ExcelWriter(excel_out_path, engine='xlsxwriter')
+
+
 # Define enrollment dates for dose groups
 # These dates are used to determine the dose group for each individual based on their vaccination dates.
-enrollment_dates = ["2021-06-14", "2022-02-07", "2023-02-06"]
+# These are ISO week format: YYYY-WW
+# The enrollment date is the date when the individual is considered to be part of the study cohort.
+enrollment_dates = ['2021-24', '2021-13', '2021-41', '2022-06', '2023-06', '2024-06']
+
 file_name = "data/vax_24.csv" # The input file name containing vaccination and death data
 
 ## Load the dataset with explicit types and rename columns to English
@@ -99,8 +110,6 @@ a = a[~((a['death_date_lpz'].notnull()) & (a['first_dose_date'] > a['death_date_
 ### YOU CAN RESTART HERE if code bombs out. This saves time.
 
 
-excel_out_path = "analysis/fixed_cohort_cmr_dosegroups.xlsx"
-excel_writer = pd.ExcelWriter(excel_out_path, engine='xlsxwriter')
 
 # Dose date columns
 dose_date_cols = [
@@ -112,7 +121,10 @@ dose_date_cols = [
 ]
 
 for enroll_date_str in enrollment_dates:
-    enrollment_date = pd.to_datetime(enroll_date_str)
+    # Parse ISO week string as Monday of that week
+    import datetime
+    print(f"Processing enrollment date {enroll_date_str} at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    enrollment_date = pd.to_datetime(enroll_date_str + '-1', format='%G-%V-%u', errors='coerce')
     a_copy = a.copy()
     # Exclude individuals who died before the enrollment date
     a_copy = a_copy[(a_copy['death_date_lpz'].isna()) | (a_copy['death_date_lpz'] >= enrollment_date)]
