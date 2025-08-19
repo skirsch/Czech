@@ -222,6 +222,7 @@ def main(data_file, output_file):
             # Group by YearOfBirth, DateOfDeath, Gender and sum dose columns (includes deaths and survivors)
             group_cols = ['YearOfBirth', 'DateOfDeath', 'Gender']
             dose_cols = [f'dose_{i}' for i in range(7)]
+            # Now the magic line that does all the work
             summary = df.groupby(group_cols, dropna=False)[dose_cols].sum().reset_index()
             # Ensure YearOfBirth is integer and missing is -1
             summary['YearOfBirth'] = summary['YearOfBirth'].fillna(-1).astype(int)
