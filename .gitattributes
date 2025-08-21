@@ -1,0 +1,66 @@
+# ---- Global defaults ----
+* text=auto
+
+# Prefer LF in the repo for source/text
+*.txt   text eol=lf
+*.md    text eol=lf
+*.py    text eol=lf
+*.sh    text eol=lf
+*.rb    text eol=lf
+*.pl    text eol=lf
+
+# Windows scripts (CRLF on checkout)
+# PowerShell
+*.ps1   text eol=crlf
+# Batch / CMD
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Web/dev files
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.toml  text eol=lf
+*.ini   text eol=lf
+*.cfg   text eol=lf
+*.csv   text eol=lf
+*.ts    text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.tsx   text eol=lf
+*.css   text eol=lf
+*.scss  text eol=lf
+*.html  text eol=lf
+*.xml   text eol=lf
+*.tex   text eol=lf
+*.rst   text eol=lf
+
+# Notebooks (do not normalize)
+*.ipynb -text
+
+# Data & binary assets (do not normalize)
+*.bin   -text
+*.dat   -text
+*.pdf   -text
+*.zip   -text
+*.gz    -text
+*.7z    -text
+*.tar   -text
+*.png   -text
+*.jpg   -text
+*.jpeg  -text
+*.webp  -text
+*.gif   -text
+*.ico   -text
+*.mp3   -text
+*.wav   -text
+*.mp4   -text
+*.mov   -text
+*.avi   -text
+*.woff  -text
+*.woff2 -text
+
+# Git & CI metadata
+.gitattributes  text eol=lf
+.gitignore      text eol=lf
+.editorconfig   text eol=lf
