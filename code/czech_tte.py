@@ -32,6 +32,9 @@ Usage (example):
         --covars age,sex,ltc,prior_infection \
         --outdir results
 
+Example command for windows:
+    python czech_tte.py --baseline .\tte_inputs\baseline.csv --vax .\tte_inputs\vax.csv --events .\tte_inputs\events.csv --t0 2021-06-14 --t1 2022-06-14 --age-min 60 --age-max 89 --covars age,sex,prior_infection --outdir .\results
+   
 Output:
     - results/summary.txt          : Key estimates.
     - results/overlap_ps.png       : Propensity overlap by arm.
@@ -293,10 +296,30 @@ def cox_hr(df, duration_col="time", event_col="event_acm", weight_col="iptw", co
     cols.append("treat")
     if covars_adjust:
         cols += covars_adjust
-    # lifelines Cox requires no missing
-    data2 = data[[duration_col, event_col] + cols + ([weight_col] if weight_col else [])].dropna()
+    
+    # Create a subset with only the needed columns
+    data2 = data[[duration_col, event_col, "treat"] + (covars_adjust or []) + ([weight_col] if weight_col else [])].copy()
+    
+    # Handle categorical variables by converting to dummy variables
+    categorical_cols = []
+    for col in (covars_adjust or []):
+        if col in data2.columns and data2[col].dtype == 'object':
+            categorical_cols.append(col)
+    
+    if categorical_cols:
+        # Create dummy variables for categorical columns
+        data2 = pd.get_dummies(data2, columns=categorical_cols, drop_first=True, dtype=float)
+    
+    # Drop rows with missing values
+    data2 = data2.dropna()
+    printv(f"Cox model input: {len(data2)} observations, {data2[event_col].sum()} events")
+    
+    # Fit Cox model
     cph = CoxPHFitter()
-    cph.fit(data2, duration_col=duration_col, event_col=event_col, weights_col=weight_col, robust=True)
+    printv("Starting Cox model fitting...")
+    cph.fit(data2, duration_col=duration_col, event_col=event_col, weights_col=weight_col, robust=False)
+    
+    # Extract treatment effect
     hr = math.exp(cph.params_["treat"])
     se = cph.standard_errors_["treat"]
     # 95% CI
@@ -383,12 +406,17 @@ def main():
 
     # Primary ACM analysis
     printv("Running ACM analyses (KM + Cox)...")
+    printv(f"Dataset size: {len(df_w)} observations, {df_w['event_acm'].sum()} events")
     km_png = os.path.join(args.outdir, "km_acm.png")
     weighted_km_plot(df_w, "time", "event_acm", "vaccinated_at_t0", "iptw", km_png, "Weighted KM: All-cause mortality")
 
+    printv("Computing KM risk ratios...")
     rr_365, risks = risk_ratio_km(df_w, horizon_days=365, duration_col="time", event_col="event_acm",
                                   group_col="vaccinated_at_t0", weight_col="iptw")
 
+    printv("Fitting Cox model for ACM (this may take a while with large datasets)...")
+    # For very large datasets, consider sampling for initial testing
+    # df_w_sample = df_w.sample(frac=0.1, random_state=42)  # Use 10% sample
     hr_acm, (lcl_acm, ucl_acm), cph_acm = cox_hr(df_w, duration_col="time", event_col="event_acm",
                                                  weight_col="iptw", covars_adjust=covars)
 

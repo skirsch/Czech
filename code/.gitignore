@@ -1,1 +1,6 @@
 *.pyc
+results_v3/
+results_v2/
+results/
+results_v1/
+tte_inputs/

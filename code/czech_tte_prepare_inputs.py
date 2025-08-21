@@ -14,7 +14,7 @@ Outputs (in --outdir):
 - precheck.csv: machine-readable cohort metrics by vaccinated_at_t0 (0/1)
 
 Usage:
-    python prepare_czech_tte_inputs.py --input ../data/vax_24.csv --outdir ./tte_inputs --t0 2022-01-01
+    cd code; python czech_tte_prepare_inputs.py --input ../data/vax_24.csv --outdir ./tte_inputs --t0 2021-06-14
 """
 
 import argparse
