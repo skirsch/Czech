@@ -1,8 +1,13 @@
 # This is KCOR.py, the main program to generate the KCOR output for the Czechia data.
 #
 # This file used to be named cfr_by_week.py but now is KCOR.py. 
+# 
 # INSTRUCTIONS:
-# To generate the files: cd code; make KCOR
+# 
+# To generate the files: 
+# 
+#           cd code; make KCOR
+# 
 # The output file is in the data directory (specified in Makefile)
 #     KCOR.xlsx
 
@@ -155,7 +160,7 @@ def main(data_file, output_file):
     data['YearOfBirth'] = data['YearOfBirth'].apply(parse_year).astype(int)
 
     # Enrollment dates: use the specified ISO week list
-    enrollment_dates = ['2021-24', '2021-13', '2021-41', '2022-06', '2023-06', '2024-06']
+    enrollment_dates = ['2021-24', '2021-20', '2021-13', '2021-41', '2022-06', '2023-06', '2024-06']
     # enrollment_dates = ['2021-24', '2022-06']   # complete faster for testing
                         
     dose_date_cols = [
