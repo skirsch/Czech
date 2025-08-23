@@ -1,13 +1,13 @@
 # ---- Global defaults ----
-* text=auto
+* text=auto eol=lf
 
 # Prefer LF in the repo for source/text
-*.txt   text eol=lf
-*.md    text eol=lf
-*.py    text eol=lf
-*.sh    text eol=lf
-*.rb    text eol=lf
-*.pl    text eol=lf
+*.txt   text=auto
+*.md    text=auto
+*.py    text=auto
+*.sh    text=auto
+*.rb    text=auto
+*.pl    text=auto
 
 # Windows scripts (CRLF on checkout)
 # PowerShell
@@ -17,23 +17,23 @@
 *.cmd   text eol=crlf
 
 # Web/dev files
-*.json  text eol=lf
-*.yml   text eol=lf
-*.yaml  text eol=lf
-*.toml  text eol=lf
-*.ini   text eol=lf
-*.cfg   text eol=lf
-*.csv   text eol=lf
-*.ts    text eol=lf
-*.js    text eol=lf
-*.jsx   text eol=lf
-*.tsx   text eol=lf
-*.css   text eol=lf
-*.scss  text eol=lf
-*.html  text eol=lf
-*.xml   text eol=lf
-*.tex   text eol=lf
-*.rst   text eol=lf
+*.json  text=auto
+*.yml   text=auto
+*.yaml  text=auto
+*.toml  text=auto
+*.ini   text=auto
+*.cfg   text=auto
+*.csv   text=auto
+*.ts    text=auto
+*.js    text=auto
+*.jsx   text=auto
+*.tsx   text=auto
+*.css   text=auto
+*.scss  text=auto
+*.html  text=auto
+*.xml   text=auto
+*.tex   text=auto
+*.rst   text=auto
 
 # Notebooks (do not normalize)
 *.ipynb -text
@@ -61,6 +61,6 @@
 *.woff2 -text
 
 # Git & CI metadata
-.gitattributes  text eol=lf
-.gitignore      text eol=lf
-.editorconfig   text eol=lf
+.gitattributes  text=auto
+.gitignore      text=auto
+.editorconfig   text=auto
