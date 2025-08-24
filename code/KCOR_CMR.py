@@ -3,6 +3,29 @@
 #
 # Analysis script for CMR for vaccination dose groups
 #
+# I run it from VS Code (execute the buffer). It takes about 10 minutes to run for each enrollment date.
+# Be sure you have pandas, numpy, matplotlib, and seaborn installed in your python environment.
+# You can install them with pip if needed:   
+#  pip install pandas numpy matplotlib seaborn (or apt install python3-pandas python3-numpy python3-matplotlib python3-seaborn on WSL)
+
+# You can also run it from the command line but be sure you have seaborn installed in your python environment.
+# You can install seaborn with pip if needed:   pip install seaborn (or apt install python3-seaborn on WSL)
+
+#   cd code; make KCOR_CMR
+
+# Output file:
+#   Czech/analysis/fixed_cohort_cmr_dosegroups.xlsx
+#
+# This is then imported into this spreadsheet for analysis.
+#   Czech/analysis/fixed_cohort_cmr_dosegroups.xlsx
+#
+# This script processes vaccination and death data to compute CMR (Crude Mortality Rate)   
+# It loads a dataset, processes it to extract relevant information, computes weekly death counts for vaccinated and unvaccinated individuals, and calculates CMR per 100,000 population per year.
+# Computes ages for birth year between 1900 and 2000
+# 
+# It also shows deaths by birth cohort and vaccination status over time, allowing for analysis of mortality trends in relation to vaccination status.
+#     
+#
 # This creates output files that are analyzed in files in analysis/fixed_cohort_CMR.... files.
 #
 # This is a complement to KCOR.py. It generates output to allow computation 
@@ -26,19 +49,7 @@
 # it does not require the KCOR.py script to run, but it uses the same data format.
 # It only looks at first dose vaccination data and ACM death dates.
 #
-# To run this script, you need to have the data in the same format as KCOR.py. I run it from VS Code (execute the buffer).
 
-# Output file:
-#   Czech/analysis/fixed_cohort_cmr.csv
-# This is then imported into this spreadsheet for analysis.
-#   Czech/analysis/fixed_cohort_cmr.xlsx
-#
-# This script processes vaccination and death data to compute CMR (Crude Mortality Rate)   
-# It loads a dataset, processes it to extract relevant information, computes weekly death counts for vaccinated and unvaccinated individuals, and calculates CMR per 100,000 population per year.
-# Computes ages for birth year between 1900 and 2000
-# 
-# It also shows deaths by birth cohort and vaccination status over time, allowing for analysis of mortality trends in relation to vaccination status.
-#     
 
 import pandas as pd
 import numpy as np
@@ -50,7 +61,7 @@ import os
 # This will contain the CMR for each dose group by week, birth cohort, and vaccination status.
 # This is used to compute the HR (Hazard Ratio) for each dose group by week, birth cohort, and vaccination status
 # and it eliminates any HVE bias since it doesn't compare vaccinated to unvaccinated.
-excel_out_path = "analysis/fixed_cohort_cmr_dosegroups.xlsx"
+excel_out_path = "../analysis/fixed_cohort_cmr_dosegroups.xlsx"
 excel_writer = pd.ExcelWriter(excel_out_path, engine='xlsxwriter')
 
 
@@ -58,11 +69,19 @@ excel_writer = pd.ExcelWriter(excel_out_path, engine='xlsxwriter')
 # These dates are used to determine the dose group for each individual based on their vaccination dates.
 # These are ISO week format: YYYY-WW
 # The enrollment date is the date when the individual is considered to be part of the study cohort.
-enrollment_dates = ['2021-24', '2021-13', '2021-41', '2022-06', '2023-06', '2024-06']
+# 2021-W13 is 03-29-2021, the start of the vaccination campaign
+# 2021-W24 is 06-14-2021, when everyone 40+ was eligible for first dose.
+# 2021-W41 is 10-11-2021, which is a late enrollment date before the winter wave.
+# 2022-W47 is 11-21-2022, which is the best booster #2 enrollment since it is just before everyone got 2nd booster.
+# 2024-W01 is 12-30-2023, which is the best booster #3 enrollment since it is just before everyone got 3rd booster.
+enrollment_dates = ['2021-13', '2021-24', '2021-41', '2022-06', '2022-47', '2024-01']
 
-file_name = "data/vax_24.csv" # The input file name containing vaccination and death data
+file_name = "../data/vax_24.csv" # The input file name containing vaccination and death data
 
 ## Load the dataset with explicit types and rename columns to English
+print(f"  Reading the input file: {file_name}")
+
+
 a = pd.read_csv(
     file_name,
     dtype=str,  # Force all columns to string to preserve ISO week format
@@ -91,8 +110,7 @@ a['birth_year'] = a['birth_year_range'].str.extract(r'(\d{4})').astype(float)
 # This will also convert NaN birth years to NaN, which we can handle later
 ## Remove birth year filtering so all birthdates, including blanks, are included
 
-# Parse ISO week format for first dose and death date
-a['first_dose_date'] = pd.to_datetime(a['first_dose_date'].str.replace(r'[^0-9-]', '', regex=True) + '-1', format='%G-%V-%u', errors='coerce')
+# Parse ISO week format for death date only (first_dose_date will be parsed later)
 a['death_date_lpz'] = pd.to_datetime(a['death_date_lpz'].str.replace(r'[^0-9-]', '', regex=True) + '-1', format='%G-%V-%u', errors='coerce')
 a['week'] = a['death_date_lpz'].dt.strftime('%G-%V').astype(str)
 
@@ -100,16 +118,33 @@ a['week'] = a['death_date_lpz'].dt.strftime('%G-%V').astype(str)
 a['birth_year'] = a['birth_year'].astype(str).str[:4]
 a['birth_year'] = pd.to_numeric(a['birth_year'], errors='coerce')
 
-# Fix death dates
+# --------- Parse all dose dates ONCE before the enrollment loop ---------
+print(f"Parsing dose date columns (one time only)...")
+# Add dose date columns if not already present
+for col in ['Datum_Druha_davka', 'Datum_Treti_davka', 'Datum_Ctvrta_davka']:
+    if col not in a.columns:
+        a[col] = pd.NaT
+
+# Use the fast vectorized ISO week parsing approach (same as KCOR.py)
+dose_date_columns = ['first_dose_date', 'Datum_Druha_davka', 'Datum_Treti_davka', 'Datum_Ctvrta_davka']
+for col in dose_date_columns:
+    print(f"  Parsing {col}...")
+    # Fast vectorized ISO week parsing: YYYY-WW + '-1' -> datetime (keep as Timestamp, not .date)
+    a[col] = pd.to_datetime(a[col] + '-1', format='%G-%V-%u', errors='coerce')
+print(f"Dose date parsing complete for all columns.")
+
+# Fix death dates - now we can compare properly since all dates are pandas Timestamps
 ## Only use LPZ death date, ignore other death date
 a = a[~((a['death_date_lpz'].notnull()) & (a['first_dose_date'] > a['death_date_lpz']))]
 
+# Convert birth years to integers once (outside the enrollment loop)
+print(f"Converting birth years to integers (one time only)...")
+a['born'] = a['birth_year'].apply(lambda x: int(x) if pd.notnull(x) else -1)
+print(f"Birth year conversion complete.")
 
 # --------- NEW: Dose group analysis for multiple enrollment dates ---------
 
 ### YOU CAN RESTART HERE if code bombs out. This saves time.
-
-
 
 # Dose date columns
 dose_date_cols = [
@@ -125,44 +160,33 @@ for enroll_date_str in enrollment_dates:
     import datetime
     print(f"Processing enrollment date {enroll_date_str} at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     enrollment_date = pd.to_datetime(enroll_date_str + '-1', format='%G-%V-%u', errors='coerce')
+    print(f"  Creating copy of dataset ({len(a)} records)...")
     a_copy = a.copy()
+    print(f"  Filtering out deaths before enrollment date...")
     # Exclude individuals who died before the enrollment date
     a_copy = a_copy[(a_copy['death_date_lpz'].isna()) | (a_copy['death_date_lpz'] >= enrollment_date)]
-    # Add dose date columns if not already present
-    for col in ['Datum_Druha_davka', 'Datum_Treti_davka', 'Datum_Ctvrta_davka']:
-        if col not in a_copy.columns:
-            a_copy[col] = pd.NaT
-    import re
-    def parse_dose_date(val):
-        if pd.isna(val) or val == '':
-            return pd.NaT
-        # Handle pandas Timestamp or numpy datetime64 directly
-        if isinstance(val, (pd.Timestamp, np.datetime64)):
-            return pd.to_datetime(val)
-        s = str(val)
-        # YYYY-MM-DD
-        if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
-            return pd.to_datetime(s, format='%Y-%m-%d', errors='coerce')
-        # YYYY-WW
-        if re.match(r'^\d{4}-\d{2}$', s):
-            # ISO week: YYYY-WW-1 (Monday)
-            return pd.to_datetime(s + '-1', format='%G-%V-%u', errors='coerce')
-        return pd.NaT
-    for col in ['first_dose_date', 'Datum_Druha_davka', 'Datum_Treti_davka', 'Datum_Ctvrta_davka']:
-        a_copy[col] = a_copy[col].apply(parse_dose_date)
-    # Assign dose group as of enrollment date (highest dose <= enrollment date)
-    def get_dose_group(row):
-        if pd.notna(row['Datum_Ctvrta_davka']) and row['Datum_Ctvrta_davka'] <= enrollment_date:
-            return 4
-        elif pd.notna(row['Datum_Treti_davka']) and row['Datum_Treti_davka'] <= enrollment_date:
-            return 3
-        elif pd.notna(row['Datum_Druha_davka']) and row['Datum_Druha_davka'] <= enrollment_date:
-            return 2
-        elif pd.notna(row['first_dose_date']) and row['first_dose_date'] <= enrollment_date:
-            return 1
-        else:
-            return 0
-    a_copy['dose_group'] = a_copy.apply(get_dose_group, axis=1)
+    print(f"  Records after enrollment filter: {len(a_copy)}")
+    
+    # Assign dose group as of enrollment date (highest dose <= enrollment date) - VECTORIZED VERSION
+    print(f"  Assigning dose groups vectorized...")
+    
+    # Create boolean masks for each dose being valid (not null and <= enrollment_date)
+    print(f"    Creating boolean masks...")
+    dose1_valid = a_copy['first_dose_date'].notna() & (a_copy['first_dose_date'] <= enrollment_date)
+    dose2_valid = a_copy['Datum_Druha_davka'].notna() & (a_copy['Datum_Druha_davka'] <= enrollment_date)
+    dose3_valid = a_copy['Datum_Treti_davka'].notna() & (a_copy['Datum_Treti_davka'] <= enrollment_date)
+    dose4_valid = a_copy['Datum_Ctvrta_davka'].notna() & (a_copy['Datum_Ctvrta_davka'] <= enrollment_date)
+    
+    # Start with dose group 0 for everyone
+    print(f"    Assigning dose groups based on valid doses...")
+    a_copy['dose_group'] = 0
+    
+    # Assign higher dose groups based on valid doses (order matters!)
+    a_copy.loc[dose1_valid, 'dose_group'] = 1
+    a_copy.loc[dose2_valid, 'dose_group'] = 2  
+    a_copy.loc[dose3_valid, 'dose_group'] = 3
+    a_copy.loc[dose4_valid, 'dose_group'] = 4
+    print(f"  Dose group assignment complete.")
     # Debug: print first record's dose dates and assigned group
     first_row = a_copy.iloc[0]
     print(f"\nFirst record debug for enrollment date {enroll_date_str}:")
@@ -170,10 +194,9 @@ for enroll_date_str in enrollment_dates:
     print(f"  Parsed first_dose_date: {first_row['first_dose_date']}")
     print(f"  Enrollment date: {enrollment_date}")
     print(f"  Assigned dose group: {first_row['dose_group']}")
-    # Make 'born' an integer, using -1 for blanks/NaN
-    a_copy['born'] = a_copy['birth_year'].apply(lambda x: int(x) if pd.notnull(x) else -1)
-
+    
     # Print starting alive counts for each (born, dose_group) in the entire database (ignore death dates)
+    print(f"  Computing starting alive counts...")
     print(f"\nStarting alive counts for enrollment date {enroll_date_str} (born, dose_group):")
     alive_counts = a_copy.groupby(['born', 'dose_group']).size().reset_index(name='alive')
     print(alive_counts)
@@ -185,11 +208,14 @@ for enroll_date_str in enrollment_dates:
         print(f"  Dose {d}: {dose_group_counts.get(d, 0)}")
     dose_groups = [0, 1, 2, 3, 4]
     # Compute population base: count of people in each (born, dose_group)
+    print(f"  Computing population base...")
     pop_base = a_copy.groupby(['born', 'dose_group']).size().reset_index(name='pop')
     # Compute deaths per (week, born, dose_group)
+    print(f"  Computing deaths per week/born/dose_group...")
     deaths = a_copy[a_copy['death_date_lpz'].notnull()].groupby(['week', 'born', 'dose_group']).size().reset_index(name='dead')
     # Get all weeks in the study period (from min to max week in the data, not just those with deaths)
     # Use all first and last death dates, plus all dose dates, to get the full week range
+    print(f"  Computing week range for study period...")
     all_dates = pd.concat([
         a_copy['first_dose_date'],
         a_copy['Datum_Druha_davka'],
@@ -201,7 +227,9 @@ for enroll_date_str in enrollment_dates:
     min_year = all_dates.min().isocalendar().year
     max_week = all_dates.max().isocalendar().week
     max_year = all_dates.max().isocalendar().year
+    print(f"    Week range: {min_year}-{min_week:02d} to {max_year}-{max_week:02d}")
     # Build all weeks between min and max
+    print(f"  Building all weeks in range...")
     from datetime import date, timedelta
     def week_year_iter(y1, w1, y2, w2):
         d = date.fromisocalendar(y1, w1, 1)
@@ -211,12 +239,19 @@ for enroll_date_str in enrollment_dates:
             # next week
             d += timedelta(days=7)
     all_weeks = [f"{y}-{str(w).zfill(2)}" for y, w in week_year_iter(min_year, min_week, max_year, max_week)]
+    print(f"    Generated {len(all_weeks)} weeks total")
     cohorts = sorted(a_copy['born'].dropna().unique())
+    print(f"    Found {len(cohorts)} birth cohorts")
     # Build MultiIndex for all (week, born)
+    print(f"  Building output DataFrame structure...")
     index = pd.MultiIndex.from_product([all_weeks, cohorts], names=['week', 'born'])
     # Prepare output DataFrame
     out = pd.DataFrame(index=index)
+    print(f"    Output DataFrame has {len(out)} rows")
+    
+    print(f"  Processing dose groups...")
     for d in dose_groups:
+        print(f"    Processing dose group {d}...")
         # deaths for this group
         deaths_d = deaths[deaths['dose_group'] == d].set_index(['week', 'born'])['dead']
         out[f'{d}_dead'] = deaths_d.reindex(index, fill_value=0).values
@@ -229,8 +264,10 @@ for enroll_date_str in enrollment_dates:
     out['born'] = out['born'].astype('Int64')
 
     # Overwrite population columns to reflect attrition from deaths (vectorized)
+    print(f"  Computing population attrition from deaths...")
     out = out.sort_values(['born', 'week'])
     for d in dose_groups:
+        print(f"    Processing attrition for dose group {d}...")
         pop_col = f'{d}_pop'
         dead_col = f'{d}_dead'
         for born, group in out.groupby('born'):
@@ -242,9 +279,12 @@ for enroll_date_str in enrollment_dates:
                 alive[i] = max(alive[i-1] - dead[i-1], 0)
             out.loc[group.index, pop_col] = alive
     # Write to Excel sheet
+    print(f"  Writing to Excel sheet...")
     sheet_name = enroll_date_str.replace('-', '_')
     out.to_excel(excel_writer, sheet_name=sheet_name, index=False)
     print(f"Added sheet {sheet_name} to {excel_out_path}")
+    print(f"Completed enrollment date {enroll_date_str} at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 60)
 
 # Save the Excel file after all sheets are added
 excel_writer.close()
