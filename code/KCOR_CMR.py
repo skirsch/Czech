@@ -366,7 +366,7 @@ for enroll_date_str in enrollment_dates:
         # Create ASMR row
         asmr_row = {
             'week': week,
-            'born': 'ASMR'  # Special identifier for ASMR rows
+            'born': 0  # Special identifier for ASMR rows (0 = ASMR)
         }
         
         # Add dose group columns
@@ -379,7 +379,6 @@ for enroll_date_str in enrollment_dates:
     # Convert ASMR rows to DataFrame and append
     if asmr_rows:
         asmr_df = pd.DataFrame(asmr_rows)
-        asmr_df['born'] = asmr_df['born'].astype('object')  # Allow string values
         out = pd.concat([out, asmr_df], ignore_index=True)
         print(f"    Added {len(asmr_rows)} ASMR rows")
     
