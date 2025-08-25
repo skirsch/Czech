@@ -72,34 +72,77 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-# US 2000 Standard Population for ASMR calculation (ages 0-84, 85+)
+# US 2000 Standard Population for ASMR calculation (19 age groups)
 # Source: https://seer.cancer.gov/stdpopulations/stdpop.19ages.html
 US_2000_STANDARD_POP = {
-    1900: 0,     # Pre-1900 births - no standard
-    1905: 0,     # Very old ages - minimal weight
-    1910: 0,
-    1915: 0,     # Age ~110 in 2025 - extremely rare
-    1920: 4259,   # Age ~105 - 85+ category  
-    1925: 4259,   # Age ~100 - 85+ category
-    1930: 4259,   # Age ~95 - 85+ category
-    1935: 4259,   # Age ~90 - 85+ category  
-    1940: 4259,   # Age 85 - 85+ category
-    1945: 26999,  # Age 80-84
-    1950: 17842,  # Age 75-79
-    1955: 12624,  # Age 70-74
-    1960: 11235,  # Age 65-69
-    1965: 10805,  # Age 60-64
-    1970: 13307,  # Age 55-59
-    1975: 14081,  # Age 50-54
-    1980: 16268,  # Age 45-49
-    1985: 19503,  # Age 40-44
-    1990: 20302,  # Age 35-39
-    1995: 19644,  # Age 30-34
-    2000: 13818,  # Age 25-29
-    2005: 6789,   # Age 20-24
-    2010: 6789,   # Age 15-19 (use 20-24 weight)
-    -1: 0,        # Missing birth years - no weight
+    "<1": 13818,
+    "1-4": 55317,
+    "5-9": 72533,
+    "10-14": 73032,
+    "15-19": 72169,
+    "20-24": 66478,
+    "25-29": 64529,
+    "30-34": 71044,
+    "35-39": 80762,
+    "40-44": 81851,
+    "45-49": 72118,
+    "50-54": 62716,
+    "55-59": 48454,
+    "60-64": 38793,
+    "65-69": 34264,
+    "70-74": 31773,
+    "75-79": 26999,
+    "80-84": 17842,
+    "85+": 15508,
 }
+
+AGE_BINS = [
+    ("<1",   0,   0),    # age == 0 years (~<1)
+    ("1-4",  1,   4),
+    ("5-9",  5,   9),
+    ("10-14",10, 14),
+    ("15-19",15, 19),
+    ("20-24",20, 24),
+    ("25-29",25, 29),
+    ("30-34",30, 34),
+    ("35-39",35, 39),
+    ("40-44",40, 44),
+    ("45-49",45, 49),
+    ("50-54",50, 54),
+    ("55-59",55, 59),
+    ("60-64",60, 64),
+    ("65-69",65, 69),
+    ("70-74",70, 74),
+    ("75-79",75, 79),
+    ("80-84",80, 84),
+    ("85+",  85, 200),   # cap at 200
+]
+
+def age_to_group(age_years: int) -> str:
+    """Map integer age to US2000 19-group label."""
+    if pd.isna(age_years):
+        return None
+    age = int(age_years)
+    for label, a0, a1 in AGE_BINS:
+        if a0 <= age <= a1:
+            return label
+    return None
+
+def approx_age_from_born(week_date, born_year) -> int:
+    """
+    Approx age in whole years at week_date when only a birth YEAR is known.
+    Uses July 1st as mid-year proxy.
+    """
+    if pd.isna(born_year) or born_year == -1:
+        return None
+    from datetime import date
+    # Convert week_date to date if it's a pandas Timestamp
+    if hasattr(week_date, 'date'):
+        week_d = week_date.date()
+    else:
+        week_d = pd.to_datetime(week_date).date()
+    dob_proxy = date(int(born_year), 7, 1)
+    return max(0, int((week_d - dob_proxy).days // 365.2425))
 
 # define the output Excel file path
 # This will contain the CMR for each dose group by week, birth cohort, and vaccination status.
@@ -212,17 +255,15 @@ for enroll_date_str in enrollment_dates:
     print(f"  Records after enrollment filter: {len(a_copy)}")
     
     # Assign dose group as of enrollment date (highest dose <= enrollment date) - VECTORIZED VERSION
-    print(f"  Assigning dose groups vectorized...")
+    print(f"  Assigning dose groups...")
     
     # Create boolean masks for each dose being valid (not null and <= enrollment_date)
-    print(f"    Creating boolean masks...")
     dose1_valid = a_copy['first_dose_date'].notna() & (a_copy['first_dose_date'] <= enrollment_date)
     dose2_valid = a_copy['Datum_Druha_davka'].notna() & (a_copy['Datum_Druha_davka'] <= enrollment_date)
     dose3_valid = a_copy['Datum_Treti_davka'].notna() & (a_copy['Datum_Treti_davka'] <= enrollment_date)
     dose4_valid = a_copy['Datum_Ctvrta_davka'].notna() & (a_copy['Datum_Ctvrta_davka'] <= enrollment_date)
     
     # Start with dose group 0 for everyone
-    print(f"    Assigning dose groups based on valid doses...")
     a_copy['dose_group'] = 0
     
     # Assign higher dose groups based on valid doses (order matters!)
@@ -231,25 +272,7 @@ for enroll_date_str in enrollment_dates:
     a_copy.loc[dose3_valid, 'dose_group'] = 3
     a_copy.loc[dose4_valid, 'dose_group'] = 4
     print(f"  Dose group assignment complete.")
-    # Debug: print first record's dose dates and assigned group
-    first_row = a_copy.iloc[0]
-    print(f"\nFirst record debug for enrollment date {enroll_date_str}:")
-    print(f"  Original first_dose_date: {a.iloc[0]['first_dose_date']}")
-    print(f"  Parsed first_dose_date: {first_row['first_dose_date']}")
-    print(f"  Enrollment date: {enrollment_date}")
-    print(f"  Assigned dose group: {first_row['dose_group']}")
     
-    # Print starting alive counts for each (born, dose_group) in the entire database (ignore death dates)
-    print(f"  Computing starting alive counts...")
-    print(f"\nStarting alive counts for enrollment date {enroll_date_str} (born, dose_group):")
-    alive_counts = a_copy.groupby(['born', 'dose_group']).size().reset_index(name='alive')
-    print(alive_counts)
-    print(f"Total alive for enrollment date {enroll_date_str}: {alive_counts['alive'].sum()}")
-    # Print breakdown by dose group
-    dose_group_counts = a_copy.groupby('dose_group').size()
-    print(f"Dose group breakdown for enrollment date {enroll_date_str}:")
-    for d in [0, 1, 2, 3, 4]:
-        print(f"  Dose {d}: {dose_group_counts.get(d, 0)}")
     dose_groups = [0, 1, 2, 3, 4]
     # Compute population base: count of people in each (born, dose_group)
     print(f"  Computing population base...")
@@ -273,7 +296,6 @@ for enroll_date_str in enrollment_dates:
     max_year = all_dates.max().isocalendar().year
     print(f"    Week range: {min_year}-{min_week:02d} to {max_year}-{max_week:02d}")
     # Build all weeks between min and max
-    print(f"  Building all weeks in range...")
     from datetime import date, timedelta
     def week_year_iter(y1, w1, y2, w2):
         d = date.fromisocalendar(y1, w1, 1)
@@ -283,19 +305,15 @@ for enroll_date_str in enrollment_dates:
             # next week
             d += timedelta(days=7)
     all_weeks = [f"{y}-{str(w).zfill(2)}" for y, w in week_year_iter(min_year, min_week, max_year, max_week)]
-    print(f"    Generated {len(all_weeks)} weeks total")
     cohorts = sorted(a_copy['born'].dropna().unique())
-    print(f"    Found {len(cohorts)} birth cohorts")
     # Build MultiIndex for all (week, born)
     print(f"  Building output DataFrame structure...")
     index = pd.MultiIndex.from_product([all_weeks, cohorts], names=['week', 'born'])
     # Prepare output DataFrame
     out = pd.DataFrame(index=index)
-    print(f"    Output DataFrame has {len(out)} rows")
     
     print(f"  Processing dose groups...")
     for d in dose_groups:
-        print(f"    Processing dose group {d}...")
         # deaths for this group
         deaths_d = deaths[deaths['dose_group'] == d].set_index(['week', 'born'])['dead']
         out[f'{d}_dead'] = deaths_d.reindex(index, fill_value=0).values
@@ -311,7 +329,6 @@ for enroll_date_str in enrollment_dates:
     print(f"  Computing population attrition from deaths...")
     out = out.sort_values(['born', 'week'])
     for d in dose_groups:
-        print(f"    Processing attrition for dose group {d}...")
         pop_col = f'{d}_pop'
         dead_col = f'{d}_dead'
         for born, group in out.groupby('born'):
@@ -323,56 +340,62 @@ for enroll_date_str in enrollment_dates:
                 alive[i] = max(alive[i-1] - dead[i-1], 0)
             out.loc[group.index, pop_col] = alive
     
-    # Compute ASMR (Age-Standardized Mortality Rate) rows and append to output
-    print(f"  Computing ASMR using US 2000 standard population...")
+    # ASMR calculation - scale death counts DOWN based on standard population
+    print(f"  Computing ASMR (Age-Standardized Mortality Rates)...")
     asmr_rows = []
     
-    for week in out['week'].unique():
-        week_data = out[out['week'] == week]
+    for week in all_weeks:
+        # print(f"    Processing ASMR for week {week}...")
+        week_data = out[out['week'] == week].copy()
         
-        # Calculate ASMR for each dose group
-        asmr_dead = []
-        asmr_pop = []
+        # Filter to reasonable birth years only (1920+)
+        current_year = int(week[:4])
+        week_data = week_data[(week_data['born'] >= 1920) & (week_data['born'] <= current_year - 18)]
+        
+        if len(week_data) == 0:
+            continue
+            
+        # Calculate age for each birth cohort in this week
+        week_data['age'] = week_data['born'].apply(lambda born: approx_age_from_born(pd.to_datetime(week + '-1', format='%G-%V-%u'), born))
+        week_data['age_group'] = week_data['age'].apply(age_to_group)
+        
+        # Remove rows with invalid age groups
+        week_data = week_data[week_data['age_group'].notna()]
+        
+        if len(week_data) == 0:
+            continue
+        
+        asmr_row = {'week': week, 'born': 0}  # Use 0 for ASMR identifier
+        
+        # Calculate the full US 2000 standard population total
+        full_standard_pop = sum(US_2000_STANDARD_POP.values())  # ~275,000
         
         for d in dose_groups:
-            total_expected_deaths = 0
-            total_standard_pop = 0
+            total_scaled_deaths = 0
             
-            for _, row in week_data.iterrows():
-                born = row['born']
-                deaths = row[f'{d}_dead'] 
-                population = row[f'{d}_pop']
-                
-                # Get standard population weight for this birth cohort
-                std_weight = US_2000_STANDARD_POP.get(born, 0)
-                
-                if population > 0 and std_weight > 0:
-                    # Age-specific mortality rate per 100,000
-                    age_specific_rate = (deaths / population) * 100000
-                    # Expected deaths in standard population
-                    expected_deaths = (age_specific_rate * std_weight) / 100000
-                    total_expected_deaths += expected_deaths
-                    total_standard_pop += std_weight
+            # Group by age group and sum populations/deaths
+            age_summary = week_data.groupby('age_group').agg({
+                f'{d}_pop': 'sum',
+                f'{d}_dead': 'sum'
+            }).reset_index()
             
-            # ASMR per 100,000 standard population
-            if total_standard_pop > 0:
-                asmr_rate = (total_expected_deaths / total_standard_pop) * 100000
-                asmr_dead.append(asmr_rate)  # Store ASMR rate in dead column
-                asmr_pop.append(total_standard_pop)  # Store standard pop in pop column
-            else:
-                asmr_dead.append(0)
-                asmr_pop.append(0)
-        
-        # Create ASMR row
-        asmr_row = {
-            'week': week,
-            'born': 0  # Special identifier for ASMR rows (0 = ASMR)
-        }
-        
-        # Add dose group columns
-        for i, d in enumerate(dose_groups):
-            asmr_row[f'{d}_dead'] = asmr_dead[i]
-            asmr_row[f'{d}_pop'] = asmr_pop[i]
+            for _, row in age_summary.iterrows():
+                age_group = row['age_group']
+                actual_pop = row[f'{d}_pop']
+                actual_deaths = row[f'{d}_dead']
+                
+                if age_group in US_2000_STANDARD_POP and actual_pop > 0:
+                    standard_pop = US_2000_STANDARD_POP[age_group]
+                    
+                    # Scale factor should be <= 1.0 (scaling DOWN)
+                    scale_factor = min(1.0, standard_pop / actual_pop)
+                    scaled_deaths = actual_deaths * scale_factor
+                    
+                    total_scaled_deaths += scaled_deaths
+            
+            # Store the scaled death count (not a rate)
+            asmr_row[f'{d}_dead'] = int(round(total_scaled_deaths))
+            asmr_row[f'{d}_pop'] = full_standard_pop  # Same for all dose groups
         
         asmr_rows.append(asmr_row)
     
