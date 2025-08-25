@@ -16,15 +16,30 @@
 # Output file:
 #   Czech/analysis/fixed_cohort_cmr_dosegroups.xlsx
 #
-# This is then imported into this spreadsheet for analysis.
-#   Czech/analysis/fixed_cohort_cmr_dosegroups.xlsx
+# The output file contains the CMR for each dose group by week, birth cohort, and vaccination status.
+# The output file contains multiple sheets, one for each enrollment date.
+# The output file contains the alive and dead counts by week, birth cohort, and vaccination status.
+# The output file columns are:
+#   week: ISO week (YYYY-WW)
+#   born: birth year (e.g., 1970)
+#   0_pop: population alive in dose group 0 (unvaccinated)
+#   0_dead: deaths in dose group 0 (unvaccinated)
+#   1_pop: population alive in dose group 1 (1 dose)
+#   1_dead: deaths in dose group 1 (1 dose)
+#   2_pop: population alive in dose group 2 (2 doses)
+#   2_dead: deaths in dose group 2 (2 doses)
+#   ... and so on for dose groups 3 and 4
 #
-# This script processes vaccination and death data to compute CMR (Crude Mortality Rate)   
-# It loads a dataset, processes it to extract relevant information, computes weekly death counts for vaccinated and unvaccinated individuals, and calculates CMR per 100,000 population per year.
+# The population counts are adjusted for deaths over time (attrition).
+#
+# The data is then imported into this spreadsheet for analysis.
+#   Czech/analysis/fixed_cohort_cmr_dosegroups_analysis.xlsx
+#
+# This script processes vaccination and death data to compute CMR (Crude Mortality Rate) for each age cohort and vaccination dose group (0, 1, 2, 3, 4). 
+# It loads the Czech dataset, processes it to extract relevant information, computes weekly death counts for vaccinated and unvaccinated individuals, and calculates CMR per 100,000 population per year.
 # Computes ages for birth year between 1900 and 2000
 # 
 # It also shows deaths by birth cohort and vaccination status over time, allowing for analysis of mortality trends in relation to vaccination status.
-#     
 #
 # This creates output files that are analyzed in files in analysis/fixed_cohort_CMR.... files.
 #
@@ -56,6 +71,35 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+
+# US 2000 Standard Population for ASMR calculation (ages 0-84, 85+)
+# Source: https://seer.cancer.gov/stdpopulations/stdpop.19ages.html
+US_2000_STANDARD_POP = {
+    1900: 0,     # Pre-1900 births - no standard
+    1905: 0,     # Very old ages - minimal weight
+    1910: 0,
+    1915: 0,     # Age ~110 in 2025 - extremely rare
+    1920: 4259,   # Age ~105 - 85+ category  
+    1925: 4259,   # Age ~100 - 85+ category
+    1930: 4259,   # Age ~95 - 85+ category
+    1935: 4259,   # Age ~90 - 85+ category  
+    1940: 4259,   # Age 85 - 85+ category
+    1945: 26999,  # Age 80-84
+    1950: 17842,  # Age 75-79
+    1955: 12624,  # Age 70-74
+    1960: 11235,  # Age 65-69
+    1965: 10805,  # Age 60-64
+    1970: 13307,  # Age 55-59
+    1975: 14081,  # Age 50-54
+    1980: 16268,  # Age 45-49
+    1985: 19503,  # Age 40-44
+    1990: 20302,  # Age 35-39
+    1995: 19644,  # Age 30-34
+    2000: 13818,  # Age 25-29
+    2005: 6789,   # Age 20-24
+    2010: 6789,   # Age 15-19 (use 20-24 weight)
+    -1: 0,        # Missing birth years - no weight
+}
 
 # define the output Excel file path
 # This will contain the CMR for each dose group by week, birth cohort, and vaccination status.
@@ -278,6 +322,67 @@ for enroll_date_str in enrollment_dates:
             for i in range(1, len(pop)):
                 alive[i] = max(alive[i-1] - dead[i-1], 0)
             out.loc[group.index, pop_col] = alive
+    
+    # Compute ASMR (Age-Standardized Mortality Rate) rows and append to output
+    print(f"  Computing ASMR using US 2000 standard population...")
+    asmr_rows = []
+    
+    for week in out['week'].unique():
+        week_data = out[out['week'] == week]
+        
+        # Calculate ASMR for each dose group
+        asmr_dead = []
+        asmr_pop = []
+        
+        for d in dose_groups:
+            total_expected_deaths = 0
+            total_standard_pop = 0
+            
+            for _, row in week_data.iterrows():
+                born = row['born']
+                deaths = row[f'{d}_dead'] 
+                population = row[f'{d}_pop']
+                
+                # Get standard population weight for this birth cohort
+                std_weight = US_2000_STANDARD_POP.get(born, 0)
+                
+                if population > 0 and std_weight > 0:
+                    # Age-specific mortality rate per 100,000
+                    age_specific_rate = (deaths / population) * 100000
+                    # Expected deaths in standard population
+                    expected_deaths = (age_specific_rate * std_weight) / 100000
+                    total_expected_deaths += expected_deaths
+                    total_standard_pop += std_weight
+            
+            # ASMR per 100,000 standard population
+            if total_standard_pop > 0:
+                asmr_rate = (total_expected_deaths / total_standard_pop) * 100000
+                asmr_dead.append(asmr_rate)  # Store ASMR rate in dead column
+                asmr_pop.append(total_standard_pop)  # Store standard pop in pop column
+            else:
+                asmr_dead.append(0)
+                asmr_pop.append(0)
+        
+        # Create ASMR row
+        asmr_row = {
+            'week': week,
+            'born': 'ASMR'  # Special identifier for ASMR rows
+        }
+        
+        # Add dose group columns
+        for i, d in enumerate(dose_groups):
+            asmr_row[f'{d}_dead'] = asmr_dead[i]
+            asmr_row[f'{d}_pop'] = asmr_pop[i]
+        
+        asmr_rows.append(asmr_row)
+    
+    # Convert ASMR rows to DataFrame and append
+    if asmr_rows:
+        asmr_df = pd.DataFrame(asmr_rows)
+        asmr_df['born'] = asmr_df['born'].astype('object')  # Allow string values
+        out = pd.concat([out, asmr_df], ignore_index=True)
+        print(f"    Added {len(asmr_rows)} ASMR rows")
+    
     # Write to Excel sheet
     print(f"  Writing to Excel sheet...")
     sheet_name = enroll_date_str.replace('-', '_')
