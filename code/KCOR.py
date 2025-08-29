@@ -456,7 +456,6 @@ for enroll_date_str in enrollment_dates:
     asmr_rows = []
     
     for week in all_weeks:
-        # print(f"    Processing ASMR for week {week}...")
         week_data = out[out['ISOweekDied'] == week].copy()
         # Filter to reasonable birth years only (1900-2020, those in Czech reference population)
         current_year = int(week[:4])
@@ -546,6 +545,14 @@ for enroll_date_str in enrollment_dates:
     print(f"  Writing to Excel sheet...")
     sheet_name = enroll_date_str.replace('-', '_')
     out.to_excel(excel_writer, sheet_name=sheet_name, index=False)
+    
+    # Format YearOfBirth column as text to avoid Excel warnings
+    workbook = excel_writer.book
+    worksheet = excel_writer.sheets[sheet_name]
+    # the following line is commented out because it simply didn't work. Excel flags the YearOfBirth column as numbers anyway so you have to ignore the warning in Excel and save.
+    # text_format = workbook.add_format({'num_format': '@'})  # '@' = text format
+    # worksheet.set_column('C:C', None, text_format)  # Column C is YearOfBirth
+    
     print(f"Added sheet {sheet_name} to {excel_out_path}")
     print(f"Completed enrollment date {enroll_date_str} at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
