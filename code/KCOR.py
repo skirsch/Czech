@@ -321,22 +321,30 @@ for enroll_date_str in enrollment_dates:
     enrollment_date = pd.to_datetime(enroll_date_str + '-1', format='%G-%V-%u', errors='coerce')
     print(f"  Creating copy of dataset ({len(a)} records)...")
     a_copy = a.copy()
-    print(f"  Filtering out deaths before enrollment date...")
-    # Exclude individuals who died before the enrollment date
-    a_copy = a_copy[(a_copy['DateOfDeath'].isna()) | (a_copy['DateOfDeath'] >= enrollment_date)]
-    print(f"  Records after enrollment filter: {len(a_copy)}")
+    print(f"  Keeping all records including deaths before enrollment date...")
+    # Keep all individuals, including those who died before the enrollment date
+    # This allows us to see pre-enrollment deaths in their correct dose groups
+    print(f"  Records in analysis: {len(a_copy)}")
     
     # Assign dose group as of enrollment date (highest dose <= enrollment date) - VECTORIZED VERSION
+    # For people who died before enrollment, use their death date instead of enrollment date
     print(f"  Assigning dose groups...")
     
-    # Create boolean masks for each dose being valid (not null and <= enrollment_date)
-    dose1_valid = a_copy['Date_FirstDose'].notna() & (a_copy['Date_FirstDose'] <= enrollment_date)
-    dose2_valid = a_copy['Date_SecondDose'].notna() & (a_copy['Date_SecondDose'] <= enrollment_date)
-    dose3_valid = a_copy['Date_ThirdDose'].notna() & (a_copy['Date_ThirdDose'] <= enrollment_date)
-    dose4_valid = a_copy['Date_FourthDose'].notna() & (a_copy['Date_FourthDose'] <= enrollment_date)
-    dose5_valid = a_copy['Date_FifthDose'].notna() & (a_copy['Date_FifthDose'] <= enrollment_date)
-    dose6_valid = a_copy['Date_SixthDose'].notna() & (a_copy['Date_SixthDose'] <= enrollment_date)
-    dose7_valid = a_copy['Date_SeventhDose'].notna() & (a_copy['Date_SeventhDose'] <= enrollment_date)
+    # For each person, determine the reference date for dose group assignment
+    # If they died before enrollment, use death date; otherwise use enrollment date
+    reference_dates = a_copy['DateOfDeath'].where(
+        a_copy['DateOfDeath'].notna() & (a_copy['DateOfDeath'] < enrollment_date),
+        enrollment_date
+    )
+    
+    # Create boolean masks for each dose being valid (not null and <= reference_date)
+    dose1_valid = a_copy['Date_FirstDose'].notna() & (a_copy['Date_FirstDose'] <= reference_dates)
+    dose2_valid = a_copy['Date_SecondDose'].notna() & (a_copy['Date_SecondDose'] <= reference_dates)
+    dose3_valid = a_copy['Date_ThirdDose'].notna() & (a_copy['Date_ThirdDose'] <= reference_dates)
+    dose4_valid = a_copy['Date_FourthDose'].notna() & (a_copy['Date_FourthDose'] <= reference_dates)
+    dose5_valid = a_copy['Date_FifthDose'].notna() & (a_copy['Date_FifthDose'] <= reference_dates)
+    dose6_valid = a_copy['Date_SixthDose'].notna() & (a_copy['Date_SixthDose'] <= reference_dates)
+    dose7_valid = a_copy['Date_SeventhDose'].notna() & (a_copy['Date_SeventhDose'] <= reference_dates)
     
     # Start with dose group 0 for everyone
     a_copy['dose_group'] = 0
@@ -362,9 +370,9 @@ for enroll_date_str in enrollment_dates:
     deaths = a_copy[a_copy['DateOfDeath'].notnull() & a_copy['WeekOfDeath'].notna()].groupby(['WeekOfDeath', 'YearOfBirth', 'Sex', 'dose_group']).size().reset_index(name='dead')
     print(f"    Total deaths across all dose groups: {deaths['dead'].sum()}")
     print(f"    Unique weeks with deaths: {len(deaths['WeekOfDeath'].unique())}")
-    # Get all weeks in the study period (from min to max week in the data, not just those with deaths)
-    # Use all first and last death dates, plus all dose dates, to get the full week range
-    print(f"  Computing week range for study period...")
+    # Get all weeks in the study period (from database start to end, including pre-enrollment period)
+    # Use all vaccination and death dates to get the full week range
+    print(f"  Computing week range for entire study period (including pre-enrollment)...")
     all_dates = pd.concat([
         a_copy['Date_FirstDose'],
         a_copy['Date_SecondDose'],
@@ -379,7 +387,7 @@ for enroll_date_str in enrollment_dates:
     min_year = all_dates.min().isocalendar().year
     max_week = all_dates.max().isocalendar().week
     max_year = all_dates.max().isocalendar().year
-    print(f"    Week range: {min_year}-{min_week:02d} to {max_year}-{max_week:02d}")
+    print(f"    Full week range: {min_year}-{min_week:02d} to {max_year}-{max_week:02d} (includes pre-enrollment period)")
     # Build all weeks between min and max
     from datetime import date, timedelta
     def week_year_iter(y1, w1, y2, w2):
