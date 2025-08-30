@@ -4,6 +4,7 @@ czech_tte.py — Fair day-0 treatment-policy Target Trial Emulation (TTE) for Cz
 
 Primary estimand:
     12-month all-cause mortality (ACM) effect of being vaccinated at t0 vs not vaccinated at t0.
+
 Design:
     - Day-0 alignment (no immortal time).
     - Treatment-policy: no censoring at later doses.
