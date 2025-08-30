@@ -42,7 +42,7 @@ COL_ALV  = "Alive"
 COL_DED  = "Dead"
 COL_DOSE = "Dose"
 
-FORCE_FLAT_ANCHOR_2023 = True   # flatten ratio over 2023
+FORCE_FLAT_ANCHOR = True   # Use flat (horizontal) detrending instead of linear trend
 DEFAULT_N_WEEKS_OFFSET = 72     # Wait 72 weeks after enrollment before starting analysis
 DEFAULT_HORIZON_WEEKS  = 52     # Analyze 52 weeks of data
 
@@ -159,7 +159,7 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
                                f"Need data from {detrend_start.date()} to {detrend_end.date()}")
 
         if anchor_mask.any():
-            if FORCE_FLAT_ANCHOR_2023:
+            if FORCE_FLAT_ANCHOR:
                 yhat = np.repeat(y[anchor_mask].mean(), len(y))
             else:
                 X = np.vstack([np.ones(len(t)), t]).T
