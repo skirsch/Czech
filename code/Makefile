@@ -1,29 +1,3 @@
-# KCOR output
-KCOR_summary=$(datadir)/KCOR_output.xlsx  # it will create various sheets for different enrollment dates
-KCOR.py=KCOR.py
-KCOR_files=$(KCOR_summary)
-
-# KCOR analysis output
-KCOR_analysis_summary=../analysis/KCOR_analysis.xlsx  # ASMR analysis of KCOR output
-KCOR_analysis.py=KCOR_analysis.py
-KCOR_analysis_files=$(KCOR_analysis_summary)
-
-KCOR: $(KCOR_files)
-
-KCOR_analysis: $(KCOR_analysis_files)
-
-$(KCOR_files): $(vax_24_source) $(KCOR.py)
-	@echo "Making the KCOR summary file `date`"
-	@echo "Output file: $(KCOR_summary)"
-	@python $(KCOR.py) $(KCOR_summary)
-	@echo "Finished at `date`"
-
-$(KCOR_analysis_files): $(KCOR_summary) $(KCOR_analysis.py)
-	@echo "Making the KCOR analysis file with ASMR `date`"
-	@echo "Input file: $(KCOR_summary)"
-	@echo "Output file: $(KCOR_analysis_summary)"
-	@python $(KCOR_analysis.py) $(KCOR_summary) $(KCOR_analysis_summary)
-	@echo "Finished at `date`"
 # Makefile to generate all the analysis files
 # 
 
@@ -50,6 +24,16 @@ time_series_all_files=$(datadir)/ts_all_month_dose_week_decade.txt
 vax_24_source=$(datadir)/vax_24.csv
 # vax_24_source=$(datadir)/vax_24_1000.csv # for testing
 
+################### for KCOR ######################
+# KCOR output
+KCOR_summary=$(datadir)/KCOR_output.xlsx  # it will create various sheets for different enrollment dates
+KCOR.py=KCOR.py
+KCOR_files=$(KCOR_summary)
+
+# KCOR analysis output
+KCOR_analysis_summary=../analysis/KCOR_analysis.xlsx  # ASMR analysis of KCOR output
+KCOR_analysis.py=KCOR_analysis.py
+KCOR_analysis_files=$(KCOR_analysis_summary)
 
 vax_24_summary=$(datadir)/vax_24_summary.csv
 
@@ -67,6 +51,24 @@ $(czech_ACM_files): $(vax_24_source) $(czech_ACM.py)
 	# make using the vax_24.csv file which can be swapped to sample.csv above
 	@echo "Making the czech_ACM summary file `date`"
 	@python $(czech_ACM.py) $(vax_24_source) $(czech_ACM_summary)
+	@echo "Finished at `date`"
+
+################### for KCOR ######################
+KCOR: $(KCOR_files)
+
+KCOR_analysis: $(KCOR_analysis_files)
+
+$(KCOR_files): $(vax_24_source) $(KCOR.py)
+	@echo "Making the KCOR summary file `date`"
+	@echo "Output file: $(KCOR_summary)"
+	@python $(KCOR.py) $(KCOR_summary)
+	@echo "Finished at `date`"
+
+$(KCOR_analysis_files): $(KCOR_summary) $(KCOR_analysis.py)
+	@echo "Making the KCOR analysis file with ASMR `date`"
+	@echo "Input file: $(KCOR_summary)"
+	@echo "Output file: $(KCOR_analysis_summary)"
+	@python $(KCOR_analysis.py) $(KCOR_summary) $(KCOR_analysis_summary)
 	@echo "Finished at `date`"
 
 ########### DONE

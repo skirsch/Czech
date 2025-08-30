@@ -146,7 +146,7 @@ def process_book(inp_path: str, out_path: str):
         for (dt, dose), sub_all in merged.groupby([COL_DATE, "Dose"]):
             sub = sub_all[sub_all["person_time"] > 0]
             if sub.empty:
-                asmr_rows.append((dt, dose, np.nan, np.nan, np.nan, np.nan, 0.0))
+                asmr_rows.append((dt, dose, np.nan, np.nan, np.nan))
                 continue
             W = sub["w"].sum()
             ASMR = (sub["w"] * sub["rate"]).sum() / W
@@ -220,8 +220,8 @@ def process_book(inp_path: str, out_path: str):
         out = pd.concat([agg, asmr_rows_final], ignore_index=True, sort=False)
         out = out.sort_values(["Dose", "birth_year", COL_DATE])
 
-        # Format date column to remove timestamp (keep only date part)
-        out[COL_DATE] = pd.to_datetime(out[COL_DATE]).dt.date
+        # Format date column as MM/DD/YYYY strings for Excel display
+        out[COL_DATE] = pd.to_datetime(out[COL_DATE]).dt.strftime('%m/%d/%Y')
 
         cols = [
             COL_DATE, "Dose", "birth_year", "deaths", "person_time",

@@ -202,6 +202,7 @@ excel_writer = pd.ExcelWriter(excel_out_path, engine='xlsxwriter')
 # 2022-W47 is 11-21-2022, which is the best booster #2 enrollment since it is just before everyone got 2nd booster.
 # 2024-W01 is 12-30-2023, which is the best booster #3 enrollment since it is just before everyone got 3rd booster.
 enrollment_dates = ['2021-13', '2021-24', '2021-41', '2022-06', '2022-47', '2024-01']
+enrollment_dates = ['2021-24']  # For testing, just do one enrollment date
 
 file_name = "../data/vax_24.csv" # The input file name containing vaccination and death data
 
