@@ -6,13 +6,19 @@
 # for EACH birth_year, per sheet. It detrends the log-rate ratio anchored to 2023 (flat)
 # and lets you set N weeks offset after enrollment and horizon length.
 #
+# TEMPORARILY MODIFIED: Currently filters for 1940 birth year, dose 2 vs dose 0 only.
+# To revert to full analysis, change FILTER_BIRTH_YEAR and FILTER_DOSE_TREAT to None in the CONFIG section.
+#
+# FIXED: KCOR now computed from enrollment onwards (not just analysis window) with detrending applied throughout.
+# ADDED: KCOR_raw column (without detrending) for comparison, and scaling to week SCALING_WEEKS after enrollment.
+#
 # Usage:
 #   python KCOR_analysis_KCOR.py <input_excel> [output_excel] [N_weeks_offset] [horizon_weeks]
 # Example:
 #   python KCOR_analysis_KCOR.py KCOR_output.xlsx KCOR_with_ASMR_byDose_KCOR.xlsx 72 52
 # 
 # Default behavior: Wait 72 weeks after enrollment, then analyze 52 weeks of data.
-# Detrending uses 2023 data if available, otherwise weeks 52-104 of analysis period to avoid normalizing early safety signals.
+# Detrending uses the entire 52-week analysis window, then applies the detrending factor to all data from enrollment onwards.
 
 import sys, math
 import pandas as pd
@@ -21,6 +27,11 @@ from datetime import date
 from pathlib import Path
 
 # ==================== CONFIG ====================
+
+# TEMPORARY FILTERS - Change these to revert to full analysis
+FILTER_BIRTH_YEAR = 1940  # Set to None to process all birth years
+FILTER_DOSE_TREAT = 2     # Set to None to process all dose treatments
+FILTER_DOSE_REF = 0       # Reference dose (usually 0)
 
 CZECH_REFERENCE_POP = {
     1900: 13, 1905: 23, 1910: 32, 1915: 45,
@@ -45,6 +56,9 @@ COL_DOSE = "Dose"
 FORCE_FLAT_ANCHOR = True   # Use flat (horizontal) detrending instead of linear trend
 DEFAULT_N_WEEKS_OFFSET = 72     # Wait 72 weeks after enrollment before starting analysis
 DEFAULT_HORIZON_WEEKS  = 52     # Analyze 52 weeks of data
+
+# SCALING: Scale KCOR curves to their value at SCALING_WEEKS after enrollment
+SCALING_WEEKS = 4  # Scale to KCOR value at this many weeks after enrollment
 
 # ==================== HELPERS ====================
 
@@ -121,7 +135,13 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
 
     if (base["Dose"]==0).sum()==0: return results
 
-    for dose_treat in sorted([d for d in base["Dose"].unique() if d!=0]):
+    # Apply dose filter if specified
+    if FILTER_DOSE_TREAT is not None:
+        dose_treat_list = [FILTER_DOSE_TREAT] if FILTER_DOSE_TREAT in base["Dose"].unique() else []
+    else:
+        dose_treat_list = sorted([d for d in base["Dose"].unique() if d!=0])
+    
+    for dose_treat in dose_treat_list:
         sub = base[base["Dose"].isin([0, dose_treat])].copy()
         piv_r = sub.pivot_table(index="DateDied", columns="Dose", values="rate", aggfunc="sum").sort_index()
         piv_d = sub.pivot_table(index="DateDied", columns="Dose", values="deaths", aggfunc="sum").sort_index()
@@ -144,19 +164,15 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
         y = np.log(rate_treat / rate_ref)
         t = np.arange(1, len(y)+1)
         
-        # First try 2023 data if available
-        anchor_mask = (piv_r.index >= pd.Timestamp("2023-01-01")) & (piv_r.index <= pd.Timestamp("2023-12-31"))
+        # Use the entire analysis window for detrending (52 weeks starting 72 weeks after enrollment)
+        detrend_start = analysis_start  # Start detrending at the beginning of analysis window
+        detrend_end = analysis_end      # Use the entire analysis window for detrending
+        anchor_mask = (piv_r.index >= detrend_start) & (piv_r.index <= detrend_end)
         
-        # If no 2023 data, use the specified detrending period (starting at analysis_start + 52 weeks)
+        # Error out if insufficient data for detrending in the specified period
         if not anchor_mask.any():
-            detrend_start = analysis_start + pd.Timedelta(weeks=52)  # Start detrending 52 weeks into analysis period
-            detrend_end = detrend_start + pd.Timedelta(weeks=52) - pd.Timedelta(days=1)  # Use 52 weeks for detrending
-            anchor_mask = (piv_r.index >= detrend_start) & (piv_r.index <= detrend_end)
-            
-            # Error out if insufficient data for detrending in the specified period
-            if not anchor_mask.any():
-                raise ValueError(f"Insufficient data for detrending birth_year={birth_year}, dose_treat={dose_treat}. "
-                               f"Need data from {detrend_start.date()} to {detrend_end.date()}")
+            raise ValueError(f"Insufficient data for detrending birth_year={birth_year}, dose_treat={dose_treat}. "
+                           f"Need data from {detrend_start.date()} to {detrend_end.date()}")
 
         if anchor_mask.any():
             if FORCE_FLAT_ANCHOR:
@@ -176,9 +192,19 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
                             1.0/np.maximum(piv_d[dose_treat].values, 1e-10) + 1.0/np.maximum(piv_d[0].values, 1e-10),
                             np.nan)
 
-        mask_analysis = (piv_r.index >= analysis_start) & (piv_r.index <= analysis_end)
+        # KCOR should be computed from enrollment onwards, not just the analysis window
+        # The detrending factor is computed from the anchor period but applied to the entire period
+        mask_enrollment = (piv_r.index >= pd.Timestamp(enroll_date)) if enroll_date else np.ones(len(piv_r.index), dtype=bool)
+        
+        # Use the full detrended data from enrollment onwards
         lw = log_rr_det.copy(); ww = wt.copy(); vw = var_week.copy()
-        lw[~mask_analysis] = 0.0; ww[~mask_analysis] = 0.0; vw[~mask_analysis] = 0.0
+        
+        # Only zero out data before enrollment (if we have an enrollment date)
+        if enroll_date:
+            lw[~mask_enrollment] = 0.0; ww[~mask_enrollment] = 0.0; vw[~mask_enrollment] = 0.0
+
+        # Keep track of analysis window for output (but don't use it for KCOR computation)
+        mask_analysis = (piv_r.index >= analysis_start) & (piv_r.index <= analysis_end)
 
         cum_w = np.cumsum(ww)
         cum_num = np.cumsum(lw * ww)
@@ -196,6 +222,42 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
         KCOR_LCL = np.exp(log_kcor - Z*se_log_kcor)
         KCOR_UCL = np.exp(log_kcor + Z*se_log_kcor)
 
+        # Compute KCOR WITHOUT detrending for comparison
+        # Use raw log rate ratios (no detrending) - this should be the original y before detrending
+        # KCOR uses detrended data: log_rr_det
+        # KCOR_raw uses raw data: y (original log rate ratios)
+        lw_raw = y.values.copy(); ww_raw = wt.copy(); vw_raw = var_week.copy()
+        
+        # Only zero out data before enrollment (if we have an enrollment date)
+        if enroll_date:
+            lw_raw[~mask_enrollment] = 0.0; ww_raw[~mask_enrollment] = 0.0; vw_raw[~mask_enrollment] = 0.0
+
+        cum_w_raw = np.cumsum(ww_raw)
+        cum_num_raw = np.cumsum(lw_raw * ww_raw)
+
+        with np.errstate(divide='ignore', invalid='ignore'):
+            valid_mask_raw = (cum_w_raw > 0) & np.isfinite(cum_w_raw) & np.isfinite(cum_num_raw)
+            log_kcor_raw = np.where(valid_mask_raw, cum_num_raw / cum_w_raw, np.nan)
+        
+        KCOR_raw = np.exp(log_kcor_raw)
+
+        # SCALING: Scale both KCOR curves to their value at SCALING_WEEKS after enrollment
+        if enroll_date and SCALING_WEEKS > 0:
+            scaling_date = pd.Timestamp(enroll_date) + pd.Timedelta(weeks=SCALING_WEEKS)
+            
+            # Find the scaling value for both KCOR curves
+            scaling_idx = (piv_r.index >= scaling_date).argmax() if (piv_r.index >= scaling_date).any() else -1
+            
+            # Scale both curves to the KCOR_raw value at week SCALING_WEEKS (to maintain relative differences)
+            if scaling_idx >= 0 and scaling_idx < len(KCOR_raw) and np.isfinite(KCOR_raw[scaling_idx]):
+                scaling_factor = KCOR_raw[scaling_idx]  # Use raw as reference
+                
+                # Scale both curves by the same factor
+                KCOR = KCOR / scaling_factor
+                KCOR_LCL = KCOR_LCL / scaling_factor
+                KCOR_UCL = KCOR_UCL / scaling_factor
+                KCOR_raw = KCOR_raw / scaling_factor
+
         df_out = pd.DataFrame({
             "DateDied": piv_r.index,
             "birth_year": birth_year,
@@ -204,10 +266,12 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
             "KCOR": KCOR,
             "KCOR_LCL": KCOR_LCL,
             "KCOR_UCL": KCOR_UCL,
+            "KCOR_raw": KCOR_raw, # Add KCOR_raw column
             "log_RR_detrended": log_rr_det,
             "RR_detrended": rr_det,
             "weight": wt,
-            "in_analysis": mask_analysis
+            "in_analysis": mask_analysis,  # Keep for backward compatibility
+            "from_enrollment": mask_enrollment  # New: shows data from enrollment onwards
         })
         results[dose_treat] = df_out
 
@@ -218,13 +282,24 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
 def process_book(inp_path: str, out_path: str, N_weeks_offset=DEFAULT_N_WEEKS_OFFSET, horizon_weeks=DEFAULT_HORIZON_WEEKS):
     xls = pd.ExcelFile(inp_path)
     writer = pd.ExcelWriter(out_path, engine="xlsxwriter")
+    
+    # Show what we're filtering for
+    if FILTER_BIRTH_YEAR is not None or FILTER_DOSE_TREAT is not None:
+        print(f"FILTERED MODE: Processing birth year {FILTER_BIRTH_YEAR}, dose {FILTER_DOSE_TREAT} vs {FILTER_DOSE_REF}")
+    else:
+        print("FULL MODE: Processing all birth years and dose groups")
 
     for sheet in xls.sheet_names:
         df = pd.read_excel(inp_path, sheet_name=sheet)
         out, enroll_date = compute_base_tables(df, sheet)
         out.to_excel(writer, sheet_name=sheet[:31], index=False)
 
-        years = sorted([int(y) for y in out["birth_year"].dropna().unique() if int(y) > 0])
+        # Apply birth year filter if specified
+        if FILTER_BIRTH_YEAR is not None:
+            years = [FILTER_BIRTH_YEAR] if FILTER_BIRTH_YEAR in out["birth_year"].dropna().unique() else []
+        else:
+            years = sorted([int(y) for y in out["birth_year"].dropna().unique() if int(y) > 0])
+        
         for by in years:
             kcor_tables = detrended_kcor_by_birthyear(out, by, enroll_date, N_weeks_offset, horizon_weeks)
             for dose_treat, df_k in kcor_tables.items():
@@ -235,6 +310,11 @@ def process_book(inp_path: str, out_path: str, N_weeks_offset=DEFAULT_N_WEEKS_OF
 
     writer.close()
     print(f"Wrote output to: {out_path}")
+    
+    # Summary of what was processed
+    if FILTER_BIRTH_YEAR is not None or FILTER_DOSE_TREAT is not None:
+        print(f"Processed: Birth year {FILTER_BIRTH_YEAR}, dose {FILTER_DOSE_TREAT} vs {FILTER_DOSE_REF}")
+        print("To revert to full analysis, set FILTER_BIRTH_YEAR and FILTER_DOSE_TREAT to None in the CONFIG section")
 
 # ==================== CLI ====================
 
