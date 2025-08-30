@@ -9,7 +9,10 @@
 # Usage:
 #   python KCOR_analysis_KCOR.py <input_excel> [output_excel] [N_weeks_offset] [horizon_weeks]
 # Example:
-#   python KCOR_analysis_KCOR.py KCOR_output.xlsx KCOR_with_ASMR_byDose_KCOR.xlsx 0 52
+#   python KCOR_analysis_KCOR.py KCOR_output.xlsx KCOR_with_ASMR_byDose_KCOR.xlsx 72 52
+# 
+# Default behavior: Wait 72 weeks after enrollment, then analyze 52 weeks of data.
+# Detrending uses 2023 data if available, otherwise weeks 52-104 of analysis period to avoid normalizing early safety signals.
 
 import sys, math
 import pandas as pd
@@ -40,8 +43,8 @@ COL_DED  = "Dead"
 COL_DOSE = "Dose"
 
 FORCE_FLAT_ANCHOR_2023 = True   # flatten ratio over 2023
-DEFAULT_N_WEEKS_OFFSET = 0
-DEFAULT_HORIZON_WEEKS  = 52
+DEFAULT_N_WEEKS_OFFSET = 72     # Wait 72 weeks after enrollment before starting analysis
+DEFAULT_HORIZON_WEEKS  = 52     # Analyze 52 weeks of data
 
 # ==================== HELPERS ====================
 
@@ -133,18 +136,27 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
             analysis_start = pd.Timestamp(enroll_date) + pd.Timedelta(weeks=N_weeks_offset)
         analysis_end = analysis_start + pd.Timedelta(weeks=horizon_weeks) - pd.Timedelta(days=1)
 
-        # baseline anchor (2023 or fallback)
+        # baseline anchor - use post-enrollment detrending period
         # Add small epsilon to avoid log(0) and division by 0
         epsilon = 1e-10
         rate_treat = np.maximum(piv_r[dose_treat], epsilon)
         rate_ref = np.maximum(piv_r[0], epsilon)
         y = np.log(rate_treat / rate_ref)
         t = np.arange(1, len(y)+1)
+        
+        # First try 2023 data if available
         anchor_mask = (piv_r.index >= pd.Timestamp("2023-01-01")) & (piv_r.index <= pd.Timestamp("2023-12-31"))
+        
+        # If no 2023 data, use the specified detrending period (starting at analysis_start + 52 weeks)
         if not anchor_mask.any():
-            fb_end = analysis_start - pd.Timedelta(days=1)
-            fb_start = fb_end - pd.Timedelta(weeks=52)
-            anchor_mask = (piv_r.index >= fb_start) & (piv_r.index <= fb_end)
+            detrend_start = analysis_start + pd.Timedelta(weeks=52)  # Start detrending 52 weeks into analysis period
+            detrend_end = detrend_start + pd.Timedelta(weeks=52) - pd.Timedelta(days=1)  # Use 52 weeks for detrending
+            anchor_mask = (piv_r.index >= detrend_start) & (piv_r.index <= detrend_end)
+            
+            # Error out if insufficient data for detrending in the specified period
+            if not anchor_mask.any():
+                raise ValueError(f"Insufficient data for detrending birth_year={birth_year}, dose_treat={dose_treat}. "
+                               f"Need data from {detrend_start.date()} to {detrend_end.date()}")
 
         if anchor_mask.any():
             if FORCE_FLAT_ANCHOR_2023:
@@ -154,7 +166,7 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
                 beta = np.linalg.pinv(X[anchor_mask]) @ y[anchor_mask].values
                 yhat = X @ beta
         else:
-            yhat = np.repeat(y.mean(), len(y))
+            raise ValueError(f"No valid detrending data available for birth_year={birth_year}, dose_treat={dose_treat}")
 
         log_rr_det = y.values - yhat
         rr_det = np.exp(log_rr_det)
