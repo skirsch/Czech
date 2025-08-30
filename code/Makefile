@@ -3,12 +3,26 @@ KCOR_summary=$(datadir)/KCOR_output.xlsx  # it will create various sheets for di
 KCOR.py=KCOR.py
 KCOR_files=$(KCOR_summary)
 
+# KCOR analysis output
+KCOR_analysis_summary=../analysis/KCOR_analysis.xlsx  # ASMR analysis of KCOR output
+KCOR_analysis.py=KCOR_analysis.py
+KCOR_analysis_files=$(KCOR_analysis_summary)
+
 KCOR: $(KCOR_files)
+
+KCOR_analysis: $(KCOR_analysis_files)
 
 $(KCOR_files): $(vax_24_source) $(KCOR.py)
 	@echo "Making the KCOR summary file `date`"
 	@echo "Output file: $(KCOR_summary)"
 	@python $(KCOR.py) $(KCOR_summary)
+	@echo "Finished at `date`"
+
+$(KCOR_analysis_files): $(KCOR_summary) $(KCOR_analysis.py)
+	@echo "Making the KCOR analysis file with ASMR `date`"
+	@echo "Input file: $(KCOR_summary)"
+	@echo "Output file: $(KCOR_analysis_summary)"
+	@python $(KCOR_analysis.py) $(KCOR_summary) $(KCOR_analysis_summary)
 	@echo "Finished at `date`"
 # Makefile to generate all the analysis files
 # 
@@ -76,7 +90,7 @@ comorbidity=$(datadir)/comorbidity.csv
 
 # complete when we have built the time series, 1 year death rates, and the more detailed 1-year mortality analysis
 # vax target will meke the vax1.csv, etc files
-all: time-series death-rates analysis time-series-all comorbidity vax vax_24 cfr_by_week czech_ACM KCOR
+all: time-series death-rates analysis time-series-all comorbidity vax vax_24 cfr_by_week czech_ACM KCOR KCOR_analysis
 	@echo "All done!"
 
 download:

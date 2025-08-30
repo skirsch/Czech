@@ -16,6 +16,8 @@
 # Output file:
 #   Czech/data/KCOR_output.xlsx (configurable via Makefile, current default)
 #
+# To analyze the output file, use make KCOR_analysis
+#
 # The output file contains the CMR for each dose group by week, birth cohort, sex, and vaccination status.
 # The output file contains multiple sheets, one for each enrollment date.
 # The data is structured with Dose as an index column and simplified Alive/Dead value columns.
@@ -433,8 +435,8 @@ for enroll_date_str in enrollment_dates:
     out = out.reset_index()
     out['ISOweekDied'] = out['ISOweekDied'].astype(str)
     
-    # Convert YearOfBirth to meaningful strings
-    out['YearOfBirth'] = out['YearOfBirth'].apply(lambda x: 'UNK' if x == -1 else ('ASMR' if x == 0 else str(x)))
+    # Convert YearOfBirth to numeric values (-1 for unknown, keep as integers)
+    out['YearOfBirth'] = out['YearOfBirth'].apply(lambda x: -1 if x == -1 else x)
     
     out['Sex'] = out['Sex'].astype(str)
     out['Dose'] = out['Dose'].astype(int)
@@ -459,95 +461,100 @@ for enroll_date_str in enrollment_dates:
             alive[i] = max(alive[i-1] - dead[i-1], 0)
         out.loc[group.index, 'Alive'] = alive
     
+    # ASMR calculation - BYPASSED for now (should be in analysis code, not summary code)
+    # This computation is bypassed to keep the output file simple and avoid mixed data types
+    print(f"  ASMR computation bypassed - keeping output file simple...")
+    
+    # (ASMR code remains here but is not executed)
     # ASMR calculation - scale death counts DOWN based on standard population
-    print(f"  Computing ASMR (Age-Standardized Mortality Rates)...")
-    asmr_rows = []
-    
-    for week in all_weeks:
-        week_data = out[out['ISOweekDied'] == week].copy()
-        # Filter to reasonable birth years only (1900-2020, those in Czech reference population)
-        current_year = int(week[:4])
-        week_data = week_data[week_data['YearOfBirth'].apply(lambda x: str(x).isdigit() and 1900 <= int(x) <= 2020)]
-        if len(week_data) == 0:
-            continue
-        # Calculate age for each birth cohort in this week
-        week_date = pd.to_datetime(week + '-1', format='%G-%V-%u')  # Convert ISO week back to Monday date
-        week_data['age'] = week_data['YearOfBirth'].apply(lambda YearOfBirth: approx_age_from_born(week_date, int(YearOfBirth)) if str(YearOfBirth).isdigit() else None)
-        week_data['age_group'] = week_data['age'].apply(age_to_group)
-        # Remove rows with invalid age groups
-        week_data = week_data[week_data['age_group'].notna()]
-        if len(week_data) == 0:
-            continue
-        
-        # Calculate the full Czech reference population total
-        full_standard_pop = sum(CZECH_REFERENCE_POP.values())  # Czech reference population total
-        
-        for d in dose_groups:
-            dose_data = week_data[week_data['Dose'] == d]
-            if len(dose_data) == 0:
-                continue
-            
-            # Group by sex and sum across age groups for this dose
-            sex_summary = dose_data.groupby('Sex').agg({
-                'Alive': 'sum',
-                'Dead': 'sum'
-            }).reset_index()
-            
-            for _, sex_row in sex_summary.iterrows():
-                sex_val = sex_row['Sex']
-                total_alive = sex_row['Alive']
-                total_dead = sex_row['Dead']
-                
-                total_scaled_deaths = 0
-                
-                # Now calculate birth-year-standardized deaths for this sex/dose combination
-                dose_sex_data = dose_data[dose_data['Sex'] == sex_val]
-                birth_year_summary = dose_sex_data.groupby('YearOfBirth').agg({
-                    'Alive': 'sum',
-                    'Dead': 'sum'
-                }).reset_index()
-                
-                for _, row in birth_year_summary.iterrows():
-                    birth_year_str = row['YearOfBirth']
-                    actual_pop = row['Alive']
-                    actual_deaths = row['Dead']
-                    
-                    # Convert birth year string to int and map to 5-year cohort
-                    if str(birth_year_str).isdigit():
-                        birth_year = int(birth_year_str)
-                        # Map to 5-year cohort (1900-1904 -> 1900, 1905-1909 -> 1905, etc.)
-                        cohort_year = ((birth_year - 1900) // 5) * 5 + 1900
-                        
-                        if cohort_year in CZECH_REFERENCE_POP and actual_pop > 0:
-                            reference_pop = CZECH_REFERENCE_POP[cohort_year]
-                            
-                            # Scale to match reference population (up or down as needed)
-                            scale_factor = reference_pop / actual_pop
-                            scaled_deaths = actual_deaths * scale_factor
-                            
-                            total_scaled_deaths += scaled_deaths
-                
-                # Create ASMR row for this sex/dose combination
-                asmr_row = {
-                    'ISOweekDied': week, 
-                    'YearOfBirth': 'ASMR',  # Use 'ASMR' string instead of 0
-                    'Sex': sex_val,         # Preserve original sex
-                    'Dose': d,              # Preserve original dose number
-                    'Alive': full_standard_pop,
-                    'Dead': int(round(total_scaled_deaths))
-                }
-                asmr_rows.append(asmr_row)
-    
-    # Convert ASMR rows to DataFrame and append
-    if asmr_rows:
-        asmr_df = pd.DataFrame(asmr_rows)
-        # Add DateDied column to ASMR rows
-        asmr_df['DateDied'] = asmr_df['ISOweekDied'].apply(lambda week: pd.to_datetime(week + '-1', format='%G-%V-%u').strftime('%Y-%m-%d'))
-        # Reorder columns to match main DataFrame
-        asmr_df = asmr_df[['ISOweekDied', 'DateDied', 'YearOfBirth', 'Sex', 'Dose', 'Alive', 'Dead']]
-        
-        out = pd.concat([out, asmr_df], ignore_index=True)
-        print(f"    Added {len(asmr_rows)} ASMR rows")
+    # print(f"  Computing ASMR (Age-Standardized Mortality Rates)...")
+    # asmr_rows = []
+    # 
+    # for week in all_weeks:
+    #     week_data = out[out['ISOweekDied'] == week].copy()
+    #     # Filter to reasonable birth years only (1900-2020, those in Czech reference population)
+    #     current_year = int(week[:4])
+    #     week_data = week_data[week_data['YearOfBirth'].apply(lambda x: str(x).isdigit() and 1900 <= int(x) <= 2020)]
+    #     if len(week_data) == 0:
+    #         continue
+    #     # Calculate age for each birth cohort in this week
+    #     week_date = pd.to_datetime(week + '-1', format='%G-%V-%u')  # Convert ISO week back to Monday date
+    #     week_data['age'] = week_data['YearOfBirth'].apply(lambda YearOfBirth: approx_age_from_born(week_date, int(YearOfBirth)) if str(YearOfBirth).isdigit() else None)
+    #     week_data['age_group'] = week_data['age'].apply(age_to_group)
+    #     # Remove rows with invalid age groups
+    #     week_data = week_data[week_data['age_group'].notna()]
+    #     if len(week_data) == 0:
+    #         continue
+    #     
+    #     # Calculate the full Czech reference population total
+    #     full_standard_pop = sum(CZECH_REFERENCE_POP.values())  # Czech reference population total
+    #     
+    #     for d in dose_groups:
+    #         dose_data = week_data[week_data['Dose'] == d]
+    #         if len(dose_data) == 0:
+    #             continue
+    #         
+    #         # Group by sex and sum across age groups for this dose
+    #         sex_summary = dose_data.groupby('Sex').agg({
+    #             'Alive': 'sum',
+    #             'Dead': 'sum'
+    #         }).reset_index()
+    #         
+    #         for _, sex_row in sex_summary.iterrows():
+    #             sex_val = sex_row['Sex']
+    #             total_alive = sex_row['Alive']
+    #             total_dead = sex_row['Dead']
+    #             
+    #             total_scaled_deaths = 0
+    #             
+    #             # Now calculate birth-year-standardized deaths for this sex/dose combination
+    #             dose_sex_data = dose_data[dose_data['Sex'] == sex_val]
+    #             birth_year_summary = dose_sex_data.groupby('YearOfBirth').agg({
+    #                 'Alive': 'sum',
+    #                 'Dead': 'sum'
+    #             }).reset_index()
+    #             
+    #             for _, row in birth_year_summary.iterrows():
+    #                 birth_year_str = row['YearOfBirth']
+    #                 actual_pop = row['Alive']
+    #                 actual_deaths = row['Dead']
+    #                 
+    #                 # Convert birth year string to int and map to 5-year cohort
+    #                 if str(birth_year_str).isdigit():
+    #                     birth_year = int(birth_year_str)
+    #                     # Map to 5-year cohort (1900-1904 -> 1900, 1905-1909 -> 1905, etc.)
+    #                     cohort_year = ((birth_year - 1900) // 5) * 5 + 1900
+    #                     
+    #                     if cohort_year in CZECH_REFERENCE_POP and actual_pop > 0:
+    #                         reference_pop = CZECH_REFERENCE_POP[cohort_year]
+    #                         
+    #                         # Scale to match reference population (up or down as needed)
+    #                         scale_factor = reference_pop / actual_pop
+    #                         scaled_deaths = actual_deaths * scale_factor
+    #                         
+    #                         total_scaled_deaths += scaled_deaths
+    #             
+    #             # Create ASMR row for this sex/dose combination
+    #             asmr_row = {
+    #                 'ISOweekDied': week, 
+    #                 'YearOfBirth': 'ASMR',  # Use 'ASMR' string instead of 0
+    #                 'Sex': sex_val,         # Preserve original sex
+    #                 'Dose': d,              # Preserve original dose number
+    #                 'Alive': full_standard_pop,
+    #                 'Dead': int(round(total_scaled_deaths))
+    #             }
+    #             asmr_rows.append(asmr_row)
+    # 
+    # # Convert ASMR rows to DataFrame and append
+    # if asmr_rows:
+    #     asmr_df = pd.DataFrame(asmr_rows)
+    #     # Add DateDied column to ASMR rows
+    #     asmr_df['DateDied'] = asmr_df['ISOweekDied'].apply(lambda week: pd.to_datetime(week + '-1', format='%G-%V-%u').strftime('%Y-%m-%d'))
+    #     # Reorder columns to match main DataFrame
+    #     asmr_df = asmr_df[['ISOweekDied', 'DateDied', 'YearOfBirth', 'Sex', 'Dose', 'Alive', 'Dead']]
+    #     
+    #     out = pd.concat([out, asmr_df], ignore_index=True)
+    #     print(f"    Added {len(asmr_rows)} ASMR rows")
     
     # Write to Excel sheet
     print(f"  Writing to Excel sheet...")
