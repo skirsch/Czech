@@ -53,7 +53,7 @@ COL_ALV  = "Alive"
 COL_DED  = "Dead"
 COL_DOSE = "Dose"
 
-FORCE_FLAT_ANCHOR = True   # Use flat (horizontal) detrending instead of linear trend
+FORCE_FLAT_ANCHOR = False   # Use exponential detrending to remove actual trends
 DEFAULT_N_WEEKS_OFFSET = 72     # Wait 72 weeks after enrollment before starting analysis
 DEFAULT_HORIZON_WEEKS  = 52     # Analyze 52 weeks of data
 
@@ -176,16 +176,49 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
 
         if anchor_mask.any():
             if FORCE_FLAT_ANCHOR:
-                yhat = np.repeat(y[anchor_mask].mean(), len(y))
+                # Compute the mean baseline from the anchor period
+                baseline = y[anchor_mask].mean()
+                # The drift to remove is the baseline itself
+                yhat = np.repeat(baseline, len(y))  # This represents the baseline to subtract
+                # For debug output, create dummy beta values
+                beta = [baseline, 0.0]  # intercept = baseline, slope = 0
             else:
+                # Use linear detrending to remove the actual trend over time
                 X = np.vstack([np.ones(len(t)), t]).T
                 beta = np.linalg.pinv(X[anchor_mask]) @ y[anchor_mask].values
                 yhat = X @ beta
+            
+            # Store baseline for debug output
+            baseline = y[anchor_mask].mean()
+            
+            # DEBUG: Show detrending details
+            print(f"DEBUG: Detrending period: {detrend_start.date()} to {detrend_end.date()}")
+            print(f"DEBUG: Detrending period length: {anchor_mask.sum()} weeks")
+            print(f"DEBUG: Linear detrending coefficients: intercept={beta[0]:.6f}, slope={beta[1]:.6f}")
+            print(f"DEBUG: Slope interpretation: log rate ratio changes by {beta[1]:.6f} per week")
+            print(f"DEBUG: Over 52 weeks, total drift = {beta[1] * 52:.6f}")
         else:
             raise ValueError(f"No valid detrending data available for birth_year={birth_year}, dose_treat={dose_treat}")
 
+        # KCOR uses detrended log rate ratios: y - yhat (remove the drift)
+        # Now using linear detrending to remove the actual trend over time
         log_rr_det = y.values - yhat
         rr_det = np.exp(log_rr_det)
+        
+        # DEBUG: Check if detrending is working
+        print(f"DEBUG: y (raw) range: {np.nanmin(y.values):.6f} to {np.nanmax(y.values):.6f}")
+        print(f"DEBUG: yhat (baseline) value: {baseline:.6f}")
+        print(f"DEBUG: log_rr_det range: {np.nanmin(log_rr_det):.6f} to {np.nanmax(log_rr_det):.6f}")
+        print(f"DEBUG: Are y and log_rr_det different? {not np.allclose(y.values, log_rr_det)}")
+        
+        # DEBUG: Show what the detrending is doing to the baseline
+        print(f"DEBUG: Raw log rate ratio at week 1: {y.values[0]:.6f}")
+        print(f"DEBUG: Detrended log rate ratio at week 1: {log_rr_det[0]:.6f}")
+        print(f"DEBUG: Raw log rate ratio at week 52: {y.values[51]:.6f}")
+        print(f"DEBUG: Detrended log rate ratio at week 52: {log_rr_det[51]:.6f}")
+        print(f"DEBUG: Detrending removed: {y.values[0] - log_rr_det[0]:.6f} from week 1, {y.values[51] - log_rr_det[51]:.6f} from week 52")
+        
+
 
         wt = np.minimum(piv_pt[dose_treat].fillna(0), piv_pt[0].fillna(0)).values
         var_week = np.where((piv_d[dose_treat]>0) & (piv_d[0]>0),
@@ -196,7 +229,7 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
         # The detrending factor is computed from the anchor period but applied to the entire period
         mask_enrollment = (piv_r.index >= pd.Timestamp(enroll_date)) if enroll_date else np.ones(len(piv_r.index), dtype=bool)
         
-        # Use the full detrended data from enrollment onwards
+        # Use the full detrended data from enrollment onwards for KCOR
         lw = log_rr_det.copy(); ww = wt.copy(); vw = var_week.copy()
         
         # Only zero out data before enrollment (if we have an enrollment date)
@@ -223,40 +256,80 @@ def detrended_kcor_by_birthyear(out_df, birth_year, enroll_date, N_weeks_offset,
         KCOR_UCL = np.exp(log_kcor + Z*se_log_kcor)
 
         # Compute KCOR WITHOUT detrending for comparison
-        # Use raw log rate ratios (no detrending) - this should be the original y before detrending
-        # KCOR uses detrended data: log_rr_det
-        # KCOR_raw uses raw data: y (original log rate ratios)
-        lw_raw = y.values.copy(); ww_raw = wt.copy(); vw_raw = var_week.copy()
+        # KCOR_raw should be the ratio of cumulative CMRs: CMR_treat / CMR_ref
+        
+        # Get the raw rates and person-time for each dose
+        rate_treat_raw = piv_r[dose_treat].values
+        rate_ref_raw = piv_r[0].values
+        pt_treat_raw = piv_pt[dose_treat].values
+        pt_ref_raw = piv_pt[0].values
         
         # Only zero out data before enrollment (if we have an enrollment date)
         if enroll_date:
-            lw_raw[~mask_enrollment] = 0.0; ww_raw[~mask_enrollment] = 0.0; vw_raw[~mask_enrollment] = 0.0
-
-        cum_w_raw = np.cumsum(ww_raw)
-        cum_num_raw = np.cumsum(lw_raw * ww_raw)
-
-        with np.errstate(divide='ignore', invalid='ignore'):
-            valid_mask_raw = (cum_w_raw > 0) & np.isfinite(cum_w_raw) & np.isfinite(cum_num_raw)
-            log_kcor_raw = np.where(valid_mask_raw, cum_num_raw / cum_w_raw, np.nan)
+            rate_treat_raw[~mask_enrollment] = 0.0
+            rate_ref_raw[~mask_enrollment] = 0.0
+            pt_treat_raw[~mask_enrollment] = 0.0
+            pt_ref_raw[~mask_enrollment] = 0.0
         
-        KCOR_raw = np.exp(log_kcor_raw)
+        # Compute cumulative deaths and person-time for each dose
+        cum_deaths_treat = np.cumsum(rate_treat_raw * pt_treat_raw)
+        cum_deaths_ref = np.cumsum(rate_ref_raw * pt_ref_raw)
+        cum_pt_treat = np.cumsum(pt_treat_raw)
+        cum_pt_ref = np.cumsum(pt_ref_raw)
+        
+        # Compute cumulative CMRs
+        with np.errstate(divide='ignore', invalid='ignore'):
+            cmr_treat = np.where(cum_pt_treat > 0, cum_deaths_treat / cum_pt_treat, np.nan)
+            cmr_ref = np.where(cum_pt_ref > 0, cum_deaths_ref / cum_pt_ref, np.nan)
+            
+            # KCOR_raw is the ratio of cumulative CMRs
+            KCOR_raw = np.where(
+                (cum_pt_treat > 0) & (cum_pt_ref > 0) & np.isfinite(cmr_treat) & np.isfinite(cmr_ref),
+                cmr_treat / cmr_ref,
+                np.nan
+            )
 
-        # SCALING: Scale both KCOR curves to their value at SCALING_WEEKS after enrollment
+        # SCALING: Scale each KCOR curve to 1.0 at SCALING_WEEKS by its own value
+        # This normalizes each curve while preserving their different shapes
         if enroll_date and SCALING_WEEKS > 0:
             scaling_date = pd.Timestamp(enroll_date) + pd.Timedelta(weeks=SCALING_WEEKS)
             
-            # Find the scaling value for both KCOR curves
+            # Find the scaling index
             scaling_idx = (piv_r.index >= scaling_date).argmax() if (piv_r.index >= scaling_date).any() else -1
             
-            # Scale both curves to the KCOR_raw value at week SCALING_WEEKS (to maintain relative differences)
-            if scaling_idx >= 0 and scaling_idx < len(KCOR_raw) and np.isfinite(KCOR_raw[scaling_idx]):
-                scaling_factor = KCOR_raw[scaling_idx]  # Use raw as reference
+            if scaling_idx >= 0 and scaling_idx < len(KCOR_raw):
+                # DEBUG: Show key values BEFORE scaling
+                print(f"\nDEBUG: BEFORE SCALING:")
+                print(f"KCOR_raw[0:4]: {KCOR_raw[:4].tolist()}")
+                print(f"KCOR_raw[-4:]: {KCOR_raw[-4:].tolist()}")
+                print(f"KCOR[0:4]: {KCOR[:4].tolist()}")
+                print(f"KCOR[-4:]: {KCOR[-4:].tolist()}")
+                print(f"Scaling index: {scaling_idx}, Scaling date: {scaling_date.date()}")
+                print(f"KCOR_raw[{scaling_idx}] = {KCOR_raw[scaling_idx]:.6f}")
+                print(f"KCOR[{scaling_idx}] = {KCOR[scaling_idx]:.6f}")
                 
-                # Scale both curves by the same factor
-                KCOR = KCOR / scaling_factor
-                KCOR_LCL = KCOR_LCL / scaling_factor
-                KCOR_UCL = KCOR_UCL / scaling_factor
-                KCOR_raw = KCOR_raw / scaling_factor
+                # Scale KCOR_raw to 1.0 at SCALING_WEEKS
+                if np.isfinite(KCOR_raw[scaling_idx]) and KCOR_raw[scaling_idx] > 0:
+                    kcor_raw_scaling_factor = KCOR_raw[scaling_idx]
+                    KCOR_raw = KCOR_raw / kcor_raw_scaling_factor
+                    print(f"DEBUG: Scaled KCOR_raw by factor: {kcor_raw_scaling_factor:.6f}")
+                
+                # Scale KCOR to 1.0 at SCALING_WEEKS (by its own value)
+                if np.isfinite(KCOR[scaling_idx]) and KCOR[scaling_idx] > 0:
+                    kcor_scaling_factor = KCOR[scaling_idx]
+                    KCOR = KCOR / kcor_scaling_factor
+                    KCOR_LCL = KCOR_LCL / kcor_scaling_factor
+                    KCOR_UCL = KCOR_UCL / kcor_scaling_factor
+                    print(f"DEBUG: Scaled KCOR by factor: {kcor_scaling_factor:.6f}")
+                
+                # DEBUG: Show key values AFTER scaling
+                print(f"\nDEBUG: AFTER SCALING:")
+                print(f"KCOR_raw[0:4]: {KCOR_raw[:4].tolist()}")
+                print(f"KCOR_raw[-4:]: {KCOR_raw[-4:].tolist()}")
+                print(f"KCOR[0:4]: {KCOR[:4].tolist()}")
+                print(f"KCOR[-4:]: {KCOR[-4:].tolist()}")
+                print(f"KCOR_raw[{scaling_idx}] = {KCOR_raw[scaling_idx]:.6f}")
+                print(f"KCOR[{scaling_idx}] = {KCOR[scaling_idx]:.6f}")
 
         df_out = pd.DataFrame({
             "DateDied": piv_r.index,

@@ -58,6 +58,20 @@ KCOR: $(KCOR_files)
 
 KCOR_analysis: $(KCOR_analysis_files)
 
+# Test target: generate test data and run KCOR analysis on it
+KCOR_test: generate_test_data
+	@echo "Running KCOR analysis on test data `date`"
+	@echo "Input file: ../analysis/KCOR_test_data.xlsx"
+	@echo "Output file: ../analysis/KCOR_test_analysis.xlsx"
+	@python $(KCOR_analysis.py) ../analysis/KCOR_test_data.xlsx ../analysis/KCOR_test_analysis.xlsx
+	@echo "Test analysis finished at `date`"
+
+# Generate test data with known trends
+generate_test_data:
+	@echo "Generating test data with known trends `date`"
+	@python generate_test_data.py
+	@echo "Test data generation finished at `date`"
+
 $(KCOR_files): $(vax_24_source) $(KCOR.py)
 	@echo "Making the KCOR summary file `date`"
 	@echo "Output file: $(KCOR_summary)"
