@@ -196,13 +196,16 @@ excel_writer = pd.ExcelWriter(excel_out_path, engine='xlsxwriter')
 # These dates are used to determine the dose group for each individual based on their vaccination dates.
 # These are ISO week format: YYYY-WW
 # The enrollment date is the date when the individual is considered to be part of the study cohort.
-# 2021-W13 is 03-29-2021, the start of the vaccination campaign
+# 2021-W13 is 03-29-2021, near the start of the vaccination campaign so we can capture impact on older people.
 # 2021-W24 is 06-14-2021, when everyone 40+ was eligible for first dose.
-# 2021-W41 is 10-11-2021, which is a late enrollment date before the winter wave.
-# 2022-W47 is 11-21-2022, which is the best booster #2 enrollment since it is just before everyone got 2nd booster.
-# 2024-W01 is 12-30-2023, which is the best booster #3 enrollment since it is just before everyone got 3rd booster.
-enrollment_dates = ['2021-13', '2021-24', '2021-41', '2022-06', '2022-47', '2024-01']
-enrollment_dates = ['2021-24']  # For testing, just do one enrollment date
+# 2021-W41 is 10-11-2021, which is a late enrollment date before the winter wave; not super useful.
+# 2022-W06 is 02-07-2022, which is the best booster #1 enrollment since it is just after everyone got 1st booster.
+# 2022-W47 is 11-21-2022, which is the best booster #2 enrollment since it is just after everyone got 2nd booster.
+# 2024-W01 is 12-30-2023, which is the best booster #3 enrollment since it is just after everyone got 3rd booster, but too late to be useful
+# because the deaths start declining in Q2 of 2024
+enrollment_dates = ['2021-13', '2021-24', '2022-06', '2022-47']  # Full set of enrollment dates
+
+# enrollment_dates = ['2021-24']  # For testing, just do one enrollment date
 
 file_name = "../data/vax_24.csv" # The input file name containing vaccination and death data
 

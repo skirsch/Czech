@@ -49,9 +49,9 @@ czech_ACM: $(czech_ACM_files)
 
 $(czech_ACM_files): $(vax_24_source) $(czech_ACM.py)
 	# make using the vax_24.csv file which can be swapped to sample.csv above
-	@echo "Making the czech_ACM summary file `date`"
+	@echo "Making the czech_ACM summary file $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 	@python $(czech_ACM.py) $(vax_24_source) $(czech_ACM_summary)
-	@echo "Finished at `date`"
+	@echo "Finished at $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 
 ################### for KCOR ######################
 KCOR: $(KCOR_files)
@@ -60,30 +60,30 @@ KCOR_analysis: $(KCOR_analysis_files)
 
 # Test target: generate test data and run KCOR analysis on it
 KCOR_test: generate_test_data
-	@echo "Running KCOR analysis on test data `date`"
+	@echo "Running KCOR analysis on test data $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 	@echo "Input file: ../analysis/KCOR_test_data.xlsx"
 	@echo "Output file: ../analysis/KCOR_test_analysis.xlsx"
 	@python $(KCOR_analysis.py) ../analysis/KCOR_test_data.xlsx ../analysis/KCOR_test_analysis.xlsx
-	@echo "Test analysis finished at `date`"
+	@echo "Test analysis finished at $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 
 # Generate test data with known trends
 generate_test_data:
-	@echo "Generating test data with known trends `date`"
+	@echo "Generating test data with known trends $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 	@python generate_test_data.py
-	@echo "Test data generation finished at `date`"
+	@echo "Test data generation finished at $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 
 $(KCOR_files): $(vax_24_source) $(KCOR.py)
-	@echo "Making the KCOR summary file `date`"
+	@echo "Making the KCOR summary file $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 	@echo "Output file: $(KCOR_summary)"
 	@python $(KCOR.py) $(KCOR_summary)
-	@echo "Finished at `date`"
+	@echo "Finished at $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 
 $(KCOR_analysis_files): $(KCOR_summary) $(KCOR_analysis.py)
-	@echo "Making the KCOR analysis file with ASMR `date`"
+	@echo "Making the KCOR analysis file with ASMR $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 	@echo "Input file: $(KCOR_summary)"
 	@echo "Output file: $(KCOR_analysis_summary)"
 	@python $(KCOR_analysis.py) $(KCOR_summary) $(KCOR_analysis_summary)
-	@echo "Finished at `date`"
+	@echo "Finished at $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 
 ########### DONE
 
@@ -130,15 +130,15 @@ cfr_by_week: $(cfr_by_week_files)
 
 $(cfr_by_week_files): $(vax_24_source) $(cfr_by_week.py)
 	# make using the vax_24.csv file which can be swapped to sample.csv above
-	@echo "Making the cfr_by_week summary file `date`"
+	@echo "Making the cfr_by_week summary file $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 	@python $(cfr_by_week.py) $(vax_24_source) $(cfr_by_week_summary)
-	@echo "Finished at `date`"
+	@echo "Finished at $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 
 # if source files are newer, or script is newer, make the summary file
 $(vax_24_files): $(vax_24_source) $(vax_24.py)
-	@echo "Making the vax_24 summary file `date`"
+	@echo "Making the vax_24 summary file $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 	@python $(vax_24.py) $(vax_24_source) $(vax_24_summary)
-	@echo "Finished at `date`"
+	@echo "Finished at $(shell python -c "import datetime; print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))")"
 
 # vax.py are the ultimate csv files suitable for pivot table analysis for the FOIA
 vax: $(vax_files) $(vax.py)
