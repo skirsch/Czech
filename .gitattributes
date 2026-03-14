@@ -1,0 +1,66 @@
+# ---- Global defaults ----
+* text=auto eol=lf
+
+# Prefer LF in the repo for source/text
+*.txt   text=auto
+*.md    text=auto
+*.py    text=auto
+*.sh    text=auto
+*.rb    text=auto
+*.pl    text=auto
+
+# Windows scripts (CRLF on checkout)
+# PowerShell
+*.ps1   text eol=crlf
+# Batch / CMD
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Web/dev files
+*.json  text=auto
+*.yml   text=auto
+*.yaml  text=auto
+*.toml  text=auto
+*.ini   text=auto
+*.cfg   text=auto
+*.csv   text=auto
+*.ts    text=auto
+*.js    text=auto
+*.jsx   text=auto
+*.tsx   text=auto
+*.css   text=auto
+*.scss  text=auto
+*.html  text=auto
+*.xml   text=auto
+*.tex   text=auto
+*.rst   text=auto
+
+# Notebooks (do not normalize)
+*.ipynb -text
+
+# Data & binary assets (do not normalize)
+*.bin   -text
+*.dat   -text
+*.pdf   -text
+*.zip   -text
+*.gz    -text
+*.7z    -text
+*.tar   -text
+*.png   -text
+*.jpg   -text
+*.jpeg  -text
+*.webp  -text
+*.gif   -text
+*.ico   -text
+*.mp3   -text
+*.wav   -text
+*.mp4   -text
+*.mov   -text
+*.avi   -text
+*.woff  -text
+*.woff2 -text
+
+# Git & CI metadata
+.gitattributes  text=auto
+.gitignore      text=auto
+.editorconfig   text=auto
